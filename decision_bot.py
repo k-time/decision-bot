@@ -20,7 +20,7 @@ my_username='KX2O',
 my_pw='speedyx811')
 """
 
-versus_list = ['v', 'v.', 'vs', 'vs.', 'versus', 'versus.']
+
 
 def main():
     # Authentication
@@ -40,20 +40,7 @@ def main():
             # Remove decisionbot string, remove whitespace
             text = text.replace('decisionbot', '').strip(string.punctuation + ' ').strip()
 
-            for word in versus_list:
-                # Figure out regex
-                #index = re.search(r'\b'+'word'+'\b', text)
 
-                index = text.find(word)
-                if index != -1:
-                    fighter_1 = text[:index]
-                    fighter_2 = text[index+3:]
-                    print(fighter_1)
-                    print(fighter_2)
-                    fight_url = fight_finder.get_fight_url(fighter_1, fighter_2)
-                    comment.reply(fight_finder.get_score_tables(fight_url))
-                    print('Replying!')
-                    break
 
 
 

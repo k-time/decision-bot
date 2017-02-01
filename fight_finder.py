@@ -1,13 +1,19 @@
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
-import pprint
+from unidecode import unidecode
+from pprint import pprint
+import re
 
 HOME_URL = 'http://mmadecisions.com/'
-SHORT_HOME_URL = 'mmadecisions.com'
 SEARCH_URL = 'http://mmadecisions.com/search.jsp?s='
 FIGHTER_SUB_URL = 'mmadecisions.com/fighter/'
 SEARCH_SUB_URL = 'mmadecisions.com/search'
-DEBUG = True
+VERSUS_LIST = ['v', 'v.', 'vs', 'vs.', 'versus', 'versus.']
+DEBUG = False
+
+def get_score_tables(fighter_1, fighter_2):
+    fight_url = get_fight_url(unidecode(fighter_1), unidecode(fighter_2))
+    return get_score_tables_from_fight_page(fight_url)
 
 
 def get_fight_url(fighter_1, fighter_2):
@@ -16,12 +22,9 @@ def get_fight_url(fighter_1, fighter_2):
     fight_list_2 = get_fight_url_list(fighter_2)
     return find_fight_url_match(fight_list_1, fight_list_2)
 
-    # second: if there's no match, check if there's a name match on each page
-    # third, do a google search and find the first link
-
 
 def find_fight_url_match(fight_list_1, fight_list_2):
-    if fight_list_1 and fight_list_2:
+    if fight_list_1 is not None and fight_list_2 is not None:
         for fight_url_1 in fight_list_1:
             for fight_url_2 in fight_list_2:
                 if sanitize_url(fight_url_1) == sanitize_url(fight_url_2):
@@ -44,7 +47,7 @@ def get_fight_url_list(fighter):
         return get_fights_from_search_page(url)
     # If page redirects to any other url
     else:
-        if DEBUG: print('Im on an irrelevant page. Returning nothing...')
+        if DEBUG: print('Im on an irrelevant page. Returning none...')
         return None
 
 
@@ -82,18 +85,18 @@ def get_fights_from_search_page(search_page_url):
 
     # Getting the list of all fights from all fighters in the table
     fighter_urls = table.find_all('a', href=True)
-    if fighter_urls is None: return None
+    if not fighter_urls: return None
     for url in fighter_urls:
         if url['href'].startswith('fighter/'):
             clean_url = sanitize_url(url['href'])
             if DEBUG: print(clean_url)
             fights = get_fights_from_fighter_page(clean_url)
-            if fights: list_of_fights.extend(fights)
+            if fights is not None: list_of_fights.extend(fights)
 
     return list_of_fights
 
 
-def get_score_tables(url):
+def get_score_tables_from_fight_page(url):
     # The final tables to be returned: list of (judge name, table rows) tuples
     score_tables = []
 
@@ -102,12 +105,10 @@ def get_score_tables(url):
 
     # Finding the decision scores table
     html_tables = soup.find_all('table', limit=3, attrs={'cellspacing':'1', 'width':'100%'})
-
-    # If the incorrect number of tables is found
-    if len(html_tables) != 3: return None
+    if not html_tables: return None
 
     # Iterate over each judge's scorecards
-    for i in range(3):
+    for i in range(len(html_tables)):
         current_table = html_tables[i]
         judge_name = current_table.a.getText().replace(u'\xa0', u' ')
 
@@ -124,6 +125,7 @@ def get_score_tables(url):
         if not rounds: return None
         for r in rounds:
             cells = r.find_all('td', attrs={'class':'list', 'align':'center'})
+            if not cells: return None
             row = []
             for cell in cells:
                 row.append(cell.getText())
@@ -140,6 +142,27 @@ def get_score_tables(url):
     return score_tables
 
 
+def sanitize_user_input(input):
+    input = input.strip()
+
+    for word in VERSUS_LIST:
+        index = re.search(r'\b' + re.escape(word) + r'\b', input)
+        if index: print(index.start())
+
+        """
+        if index != -1:
+            fighter_1 = input[:index]
+            fighter_2 = input[index + 3:]
+            print(fighter_1)
+            print(fighter_2)
+            comment.reply(get_score_tables(fighter_1, fighter_2))
+            print('Replying!')
+            break
+        else:
+            i=0
+        """
+
+
 def sanitize_url(url):
     # Check if the url is a valid url
     if 'decision/' not in url and 'fighter/' not in url:
@@ -154,28 +177,33 @@ def sanitize_url(url):
     if index != -1:
         url = url[:index-1]
 
-    return url
+    # Replace accented characters in url
+    return unidecode(url)
 
 
 def main():
-    #pprint.pprint(get_score_tables('http://mmadecisions.com/decision/6713/Nate-Diaz-vs-Michael-Johnson'))
+
+    print(sanitize_user_input('diaz vs mcgregor'))
     #get_fights_from_search_page('http://mmadecisions.com/search.jsp?s=diaz')
 
+    """
     print('Enter fighter 1: ')
     fighter_1 = input()
     print('Enter fighter 2: ')
     fighter_2 = input()
+    """
 
-    fight_url = get_fight_url(fighter_1, fighter_2)
-    if fight_url:
-        pprint.pprint(get_score_tables(fight_url))
-    else:
+    """
+    fighter_1 = 'dillashaw'
+    fighter_2 = 'Assunção'
+
+    score_tables = get_score_tables(fighter_1, fighter_2)
+
+    if score_tables is None:
         print('Could not find fight, or perhaps this fight did not end in a decision.')
-
-
-    #print(get_fight_url_list('glenn'.lower().replace(' ', '%20')));
-    #print(get_fights_from_fighter_page('http://mmadecisions.com/fighter/635/Rafael-dos-Anjos'))
-
+    else:
+        pprint(score_tables)
+    """
 
 
 if __name__ == '__main__':
