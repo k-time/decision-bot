@@ -1,15 +1,20 @@
 import sys
+import traceback
 import praw
+import praw.exceptions
 import string
 import fight_finder
-import user_info
+import info
 
 fail_text = 'I couldn\'t find this fight! Try checking your spelling, or perhaps the ' \
-            'fight didn\'t end in a decision. Please let me know if I\'ve made a mistake.'
+            'fight didn\'t end in a decision. mmadecisions.com may also be down. ' \
+            'Please let me know if I\'ve made a mistake.'
 
 
-def build_comment_reply(score_tables, fight_result, media_scores):
+def build_comment_reply(score_tables, fight_result, media_scores, event_info):
     comment = fight_result + '\n\n'
+    if event_info is not None:
+        comment += event_info + '\n\n'
 
     # Building the first and second rows
     row_1 = 'ROUND'
@@ -72,7 +77,7 @@ def build_media_scores_text(media_scores):
         for score in media_scores:
             if score not in covered:
                 count = media_scores.count(score)
-                media_text += '* **' + str(count) + '/' + str(total) + \
+                media_text += '- **' + str(count) + '/' + str(total) + \
                               '** media member(s) scored it **' + score[0] + ' ' + score[1] + '**.\n'
                 covered.add(score)
 
@@ -89,14 +94,16 @@ def log_message(log_name, comment_body, message):
         print(comment_body + '\n' + message)
 
 
-def log_error(log_name, comment_body, e):
+def log_error(log_name, comment_body, exc_info):
     try:
         with open(log_name, 'a') as f:
-            f.write(comment_body + '\n' + str(e) + '\n')
+            f.write(comment_body + '\n')
+            traceback.print_exception(exc_info[0], exc_info[1], exc_info[2], file=f)
             f.write('-------------\n')
     except FileNotFoundError:
         print('File \'' + log_name + '\' not found!')
-        print(comment_body + '\n' + str(e))
+        print(comment_body + '\n')
+        traceback.print_exception(exc_info[0], exc_info[1], exc_info[2], file=sys.stdout)
 
 
 def log_comment(comment_log_name, comment_id):
@@ -112,24 +119,28 @@ def tester():
     print('Enter fight:')
     input_fight = input()
     print('Searching...')
-    score_tables, fight_result, media_scores = fight_finder.get_score_cards_from_input(input_fight)
+    score_tables, fight_result, media_scores, event_info = fight_finder.get_score_cards_from_input(input_fight)
     if score_tables is None:
         print(fail_text)
     else:
-        print(build_comment_reply(score_tables, fight_result, media_scores))
+        print(build_comment_reply(score_tables, fight_result, media_scores, event_info))
 
 
 def main():
+    # Check for debug mode
+    if '-d' in sys.argv:
+        fight_finder.DEBUG = True
+
     # Authentication
     reddit = praw.Reddit(
-            client_id=user_info.my_client_id,
-            client_secret=user_info.my_client_secret,
-            user_agent=user_info.my_user_agent,
-            username=user_info.my_username,
-            password=user_info.my_pw)
+            client_id=info.my_client_id,
+            client_secret=info.my_client_secret,
+            user_agent=info.my_user_agent,
+            username=info.my_username,
+            password=info.my_pw)
 
-    log_name = '/home/ubuntu/decision_bot/log.txt'
-    comment_log_name = '/home/ubuntu/decision_bot/commented.txt'
+    log_name = info.log_name
+    comment_log_name = info.comment_log_name
 
     # Open log of previous bot comments
     try:
@@ -139,10 +150,11 @@ def main():
         if len(commented_list) > 100:
             with open(comment_log_name, 'w') as f:
                 f.write('\n'.join(commented_list[-50:]) + '\n')
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         error_text = 'File \'' + comment_log_name + '\' not found!'
         print(error_text)
-        log_error(log_name, error_text, e)
+        exc_info = sys.exc_info()
+        log_error(log_name, error_text, exc_info)
         sys.exit(1)
 
     # Monitoring incoming comment stream from r/mma
@@ -162,27 +174,41 @@ def main():
                     input_fight = text.replace('decisionbot', '')\
                         .replace('decision bot', ' ').strip(string.punctuation + ' ')
                     # Retrieve the score cards
-                    score_tables, fight_result, media_scores = fight_finder.get_score_cards_from_input(input_fight)
+                    score_tables, fight_result, media_scores, event_info = \
+                        fight_finder.get_score_cards_from_input(input_fight)
+                    if fight_finder.DEBUG:
+                        print('Sending reply to initial comment...')
                     if score_tables is None:
                         comment.reply(fail_text)
                         log_comment(comment_log_name, comment.id)
                     else:
-                        comment.reply(build_comment_reply(score_tables, fight_result, media_scores))
+                        comment.reply(build_comment_reply(score_tables, fight_result, media_scores, event_info))
                         log_comment(comment_log_name, comment.id)
+                    if fight_finder.DEBUG:
+                        print('Success!')
+                    # Let me know that the bot has been triggered
+                    reddit.redditor(info.personal_username).message('DecisionBot triggered',
+                                                         comment.body + '\nwww.reddit.com' + comment.permalink(
+                                                             fast=True))
 
-            except Exception as e:
-                log_error(log_name, comment.body, e)
+            except Exception:
+                if fight_finder.DEBUG:
+                    print('Error occurred.')
+                exc_info = sys.exc_info()
+                log_error(log_name, comment.body, exc_info)
                 try:
                     comment.reply(fail_text)
                     log_comment(comment_log_name, comment.id)
-                except praw.exceptions.PRAWException as e:
-                    log_error(log_name, comment.body, e)
+                except praw.exceptions.PRAWException:
+                    exc_info = sys.exc_info()
+                    log_error(log_name, comment.body, exc_info)
                     try:
                         if comment.author is not None:
                             reddit.redditor(comment.author.name).message(
                                 'Sorry!', 'There was an error with DecisionBot- I will look into this issue ASAP.')
-                    except praw.exceptions.PRAWException as e:
-                        log_error(log_name, comment.body, e)
+                    except praw.exceptions.PRAWException:
+                        exc_info = sys.exc_info()
+                        log_error(log_name, comment.body, exc_info)
 
 
 if __name__ == '__main__':
