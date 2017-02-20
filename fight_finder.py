@@ -31,6 +31,7 @@ def get_fight_url(fighter_1, fighter_2):
 
 
 def find_fight_url_match(fight_list_1, fight_list_2):
+    # Need to return a list of all matches
     if fight_list_1 is not None and fight_list_2 is not None:
         for fight_url_1 in fight_list_1:
             for fight_url_2 in fight_list_2:
@@ -114,19 +115,6 @@ def get_fights_from_search_page(search_page_url):
         return None
     else:
         list_of_fights.extend(fights_on_page)
-
-    """
-    can delete if above code works
-    # Getting the list of all fights from fighters in the column on the first page
-    fighter_urls = fighter_names.find_all('a', href=True)
-    if not fighter_urls: return None
-    for url in fighter_urls:
-        if url['href'].startswith('fighter/'):
-            clean_url = sanitize_url(url['href'])
-            if DEBUG: print(clean_url)
-            fights = get_fights_from_fighter_page(clean_url)
-            if fights is not None: list_of_fights.extend(fights)
-    """
 
     # If there are additional pages, get all fighters from those fighters as well
     other_fighter_names = fighter_column.find_all('div', attrs={'style': 'display:none;'})

@@ -187,9 +187,8 @@ def main():
                     if fight_finder.DEBUG:
                         print('Success!')
                     # Let me know that the bot has been triggered
-                    reddit.redditor(info.personal_username).message('DecisionBot triggered',
-                                                         comment.body + '\nwww.reddit.com' + comment.permalink(
-                                                             fast=True))
+                    reddit.redditor(info.personal_username).message(
+                        'DecisionBot triggered', comment.body + '\nwww.reddit.com' + comment.permalink(fast=True))
 
             except Exception:
                 if fight_finder.DEBUG:
