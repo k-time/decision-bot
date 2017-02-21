@@ -17,27 +17,31 @@ DEBUG = True
 
 def get_score_tables(fighter_1, fighter_2):
     if fighter_1 and fighter_2:
-        fight_url = get_fight_url(fighter_1, fighter_2)
-        return get_score_tables_from_fight_page(fight_url)
-    return None, None, None, None
+        fight_urls = get_fight_urls(fighter_1, fighter_2)
+        return get_score_tables_from_fight_page(fight_urls)
+    return None
 
 
-def get_fight_url(fighter_1, fighter_2):
+# There could be multiple fights due to rematches
+def get_fight_urls(fighter_1, fighter_2):
     # First, check if there's a fight url match for each search term
     fight_list_1 = get_fight_url_list(unidecode(fighter_1).replace(' ', '+'))
     fight_list_2 = get_fight_url_list(unidecode(fighter_2).replace(' ', '+'))
-    return find_fight_url_match(fight_list_1, fight_list_2)
+    return find_fight_url_matches(fight_list_1, fight_list_2)
     # Could possibly do other methods later
 
 
-def find_fight_url_match(fight_list_1, fight_list_2):
-    # Need to return a list of all matches
+def find_fight_url_matches(fight_list_1, fight_list_2):
+    # Need to return a list of all matches, in case of rematches
+    fight_urls = []
     if fight_list_1 is not None and fight_list_2 is not None:
         for fight_url_1 in fight_list_1:
             for fight_url_2 in fight_list_2:
-                if sanitize_url(fight_url_1) == sanitize_url(fight_url_2):
-                    return sanitize_url(fight_url_1)
-    return None
+                url_1 = sanitize_url(fight_url_1)
+                url_2 = sanitize_url(fight_url_2)
+                if url_1 == url_2:
+                    fight_urls.append(url_1)
+    return fight_urls
 
 
 def get_fight_url_list(fighter):
@@ -148,108 +152,120 @@ def get_fights_on_page(fighter_names):
     return fights_on_page
 
 
-def get_score_tables_from_fight_page(url):
-    # The final tables to be returned: list of (judge name, table rows) tuples
-    # The fight result, media scores, and event info will also be returned.
-    score_tables = []
+def get_score_tables_from_fight_page(fight_urls):
+    if not fight_urls:
+        return None
 
-    if url is None or HOME_URL not in url:
-        return None, None, None, None
+    # List of tuples representing each fight.
+    # If there is one fight, there is one tuple.
+    # If there was a rematch, there are two tuples, etc.
+    fight_info = []
 
-    # Opening the page
-    soup = BeautifulSoup(urlopen(url).read(), "lxml")
+    for url in fight_urls:
+        if not url or HOME_URL not in url:
+            return None
 
-    # Finding the decision scores table
-    html_tables = soup.find_all('table', limit=3, attrs={'cellspacing': '1', 'width': '100%'})
-    if not html_tables:
-        return None, None, None, None
+        # The final tables to be returned: list of (judge name, table rows) tuples
+        # The fight result, media scores, and event info will also be returned.
+        score_tables = []
 
-    # Iterate over each judge's scorecards
-    for i in range(len(html_tables)):
-        current_table = html_tables[i]
-        if current_table.a is None:
-            judge_name = 'Unknown Judge'
-        else:
-            judge_name = current_table.a.getText().replace(u'\xa0', u' ')
+        # Opening the page
+        soup = BeautifulSoup(urlopen(url).read(), "lxml")
 
-        # The rows of information in the current table
-        rows = []
+        # Finding the decision scores table
+        html_tables = soup.find_all('table', limit=3, attrs={'cellspacing': '1', 'width': '100%'})
+        if not html_tables:
+            return None
 
-        # Retrieving fighter names
-        fighters = current_table.find_all('td', limit=2, attrs={'align': 'center', 'class': 'top-cell', 'width': '45%'})
-        if len(fighters) != 2:
-            return None, None, None, None
-        rows.append(['ROUND', fighters[0].getText(), fighters[1].getText()])
+        # Iterate over each judge's scorecards
+        for i in range(len(html_tables)):
+            current_table = html_tables[i]
+            if current_table.a is None:
+                judge_name = 'Unknown Judge'
+            else:
+                judge_name = current_table.a.getText().replace(u'\xa0', u' ')
 
-        # Getting round numbers and scores
-        rounds = current_table.find_all('tr', attrs={'class': 'decision'})
-        if not rounds:
-            return None, None, None, None
-        for r in rounds:
-            cells = r.find_all('td', attrs={'class': 'list', 'align': 'center'})
-            if not cells:
-                return None, None, None, None
-            row = []
-            for cell in cells:
-                row.append(cell.getText())
-            rows.append(row)
+            # The rows of information in the current table
+            rows = []
 
-        # Getting the total scores
-        totals = current_table.find_all('td', limit=2, attrs={'class': 'bottom-cell'})
-        if len(totals) != 2:
-            return None, None, None, None
-        rows.append(['TOTAL', totals[0].getText(), totals[1].getText()])
+            # Retrieving fighter names
+            fighters = current_table.find_all('td', limit=2, attrs={
+                'align': 'center', 'class': 'top-cell', 'width': '45%'})
+            if len(fighters) != 2:
+                return None
+            rows.append(['ROUND', fighters[0].getText(), fighters[1].getText()])
 
-        # Add tuple (judge, rows) to score_tables
-        score_tables.append((judge_name, rows))
+            # Getting round numbers and scores
+            rounds = current_table.find_all('tr', attrs={'class': 'decision'})
+            if not rounds:
+                return None
+            for r in rounds:
+                cells = r.find_all('td', attrs={'class': 'list', 'align': 'center'})
+                if not cells:
+                    return None
+                row = []
+                for cell in cells:
+                    row.append(cell.getText())
+                rows.append(row)
 
-    # Getting the fight result (Fighter A defeats Fighter B by...)
-    try:
-        top_section = soup.find('td', attrs={'class': 'decision-top', 'align': 'right'})
-        first_fighter = top_section.a.getText().replace('&nbsp;', ' ').strip()
-        middle_section = soup.find('td', attrs={'class': 'decision-middle', 'colspan': '2'})
-        action = middle_section.i.getText().strip()
-        bottom_section = soup.find('td', attrs={'class': 'decision-bottom', 'colspan': '2'})
-        second_fighter = bottom_section.a.getText().replace('&nbsp;', ' ').strip()
-        decision_section = soup.find('th', attrs={'class': 'event2', 'colspan': '2'})
-        decision = decision_section.i.getText().strip()
-        fight_result = '**' + first_fighter.upper() + '** ' + action + ' **' + \
-                       second_fighter.upper() + '** (*' + decision.lower() + '*)'
-    except AttributeError:
-        fight_result = None
+            # Getting the total scores
+            totals = current_table.find_all('td', limit=2, attrs={'class': 'bottom-cell'})
+            if len(totals) != 2:
+                return None
+            rows.append(['TOTAL', totals[0].getText(), totals[1].getText()])
 
-    # Getting the event info
-    try:
-        event_section = soup.find('td', attrs={'class': 'decision-top2', 'colspan': '2'})
-        info = event_section.getText().replace('\t', '').strip('\n').split('\n')
-        if len(info) >= 1:
-            # Getting the event name
-            event_info = info[0].strip()
-            if len(info) >= 2:
-                # Adding the event date
-                event_date = get_full_date(info[1].strip())
-                event_info += ' — ' + event_date
-                event_info = '^(' + event_info + ')'
-        else:
+            # Add tuple (judge, rows) to score_tables
+            score_tables.append((judge_name, rows))
+
+        # Getting the fight result (Fighter A defeats Fighter B by...)
+        try:
+            top_section = soup.find('td', attrs={'class': 'decision-top', 'align': 'right'})
+            first_fighter = top_section.a.getText().replace('&nbsp;', ' ').strip()
+            middle_section = soup.find('td', attrs={'class': 'decision-middle', 'colspan': '2'})
+            action = middle_section.i.getText().strip()
+            bottom_section = soup.find('td', attrs={'class': 'decision-bottom', 'colspan': '2'})
+            second_fighter = bottom_section.a.getText().replace('&nbsp;', ' ').strip()
+            decision_section = soup.find('th', attrs={'class': 'event2', 'colspan': '2'})
+            decision = decision_section.i.getText().strip()
+            fight_result = '**' + first_fighter.upper() + '** ' + action + ' **' + \
+                           second_fighter.upper() + '** (*' + decision.lower() + '*)'
+        except AttributeError:
+            fight_result = None
+
+        # Getting the event info
+        try:
+            event_section = soup.find('td', attrs={'class': 'decision-top2', 'colspan': '2'})
+            info = event_section.getText().replace('\t', '').strip('\n').split('\n')
+            if len(info) >= 1:
+                # Getting the event name
+                event_info = info[0].strip()
+                if len(info) >= 2:
+                    # Adding the event date
+                    event_date = get_full_date(info[1].strip())
+                    event_info += ' — ' + event_date
+                    event_info = '^(' + event_info + ')'
+            else:
+                event_info = None
+        except AttributeError:
             event_info = None
-    except AttributeError:
-        event_info = None
 
-    # Getting the media scores
-    try:
-        media_section = soup.find('table', attrs={'cellspacing': '2', 'width': '100%'})
-        media_rows = media_section.find_all('tr', attrs={'class': 'decision'})
-        media_scores = []
-        if media_rows:
-            for row in media_rows:
-                score = row.a.getText().strip()
-                fighter = row.find_all('td', attrs={'align': 'center'})[-1].getText()
-                media_scores.append((score, fighter))
-    except AttributeError:
-        media_scores = None
+        # Getting the media scores
+        try:
+            media_section = soup.find('table', attrs={'cellspacing': '2', 'width': '100%'})
+            media_rows = media_section.find_all('tr', attrs={'class': 'decision'})
+            media_scores = []
+            if media_rows:
+                for row in media_rows:
+                    score = row.a.getText().strip()
+                    fighter = row.find_all('td', attrs={'align': 'center'})[-1].getText()
+                    media_scores.append((score, fighter))
+        except AttributeError:
+            media_scores = None
 
-    # return fight_result as well
-    return score_tables, fight_result, media_scores, event_info
+        # Add a tuple containing all fight info
+        fight_info.append((score_tables, fight_result, media_scores, event_info))
+
+    return fight_info
 
 
 def get_full_date(num_date):
@@ -285,12 +301,31 @@ def sanitize_url(url):
     return unidecode(url)
 
 
+"""
+Check if a fight number is included in input, ex. Lawler vs. Hendricks 2.
+Right now, function only can be used for removing numbers from input
+because mmadecisions.com does not record the fight number, and fights
+that do not end in a decision are not included on the website.
+"""
+def get_fight_num(input_fight):
+    last_char = input_fight[-1]
+    if last_char.isdigit():
+        fight_num = int(last_char)
+        new_input_fight = input_fight[:-1].strip()
+        return fight_num, new_input_fight
+    else:
+        return 1, input_fight
+
+
 # Searches for variations of "versus" in the input
 def get_fighters_from_input(input_fight):
     input_fight = input_fight.strip().replace('.', '')
 
     if input_fight == '':
         return None, None
+
+    # TODO: How to implement fight numbers?
+    fight_num, input_fight = get_fight_num(input_fight)
 
     for word in VERSUS_LIST:
         match = re.search(r'\b' + re.escape(word) + r'\b', input_fight)
@@ -332,7 +367,7 @@ def guess_fighters_from_input(input_fight):
 
 def get_score_cards_from_input(input_fight):
     fighter_1, fighter_2 = get_fighters_from_input(input_fight)
-    score_tables, fight_result, media_scores, event_info = None, None, None, None
+    fight_info = None
 
     # Input is blank
     if input_fight.strip() == '':
@@ -347,51 +382,64 @@ def get_score_cards_from_input(input_fight):
         if DEBUG:
             print('\nFighter 1: ' + fighter_1)
             print('Fighter 2: ' + fighter_2 + '\n')
-        score_tables, fight_result, media_scores, event_info = get_score_tables(fighter_1, fighter_2)
+        fight_info = get_score_tables(fighter_1, fighter_2)
     # Variations of "versus" were not found, so try to find the fighter names
     else:
         if DEBUG:
-            print('\nNo \'versus\' found in input, so guessing fighters...')
+            print('\nNo \'versus\' found in input, so guessing fighters...\n')
         name_combos = guess_fighters_from_input(input_fight)
         for combo in name_combos:
             if DEBUG:
                 print('Trying fighter 1: ' + combo[0])
                 print('Trying fighter 2: ' + combo[1] + '\n')
-            score_tables, fight_result, media_scores, event_info = get_score_tables(combo[0], combo[1])
-            if score_tables is not None:
-                break
+            fight_info = get_score_tables(combo[0], combo[1])
+            if fight_info:
+                for fight in fight_info:
+                    if fight[0] is not None:
+                        break
             elif DEBUG:
                 print('\nCould not find fight- guessing names again...')
 
     if DEBUG:
-        if score_tables is None:
+        if not fight_info:
             print('\nUnable to find fight!')
         else:
             print('\nFight found!')
 
-    return score_tables, fight_result, media_scores, event_info
+    return fight_info
 
 
 def main():
     print('Enter fight:')
     input_fight = input()
     print('Searching...')
-    score_tables, fight_result, media_scores, event_info = get_score_cards_from_input(input_fight)
+    fight_info = get_score_cards_from_input(input_fight)
 
-    if score_tables is None:
-        print('Could not find fight: check your spelling, or perhaps this fight did not end in a decision!')
+    error_msg = 'Could not find fight: check your spelling, or perhaps this fight did not end in a decision!'
+
+    if fight_info:
+        for fight in fight_info:
+            score_tables = fight[0]
+            fight_result = fight[1]
+            media_scores = fight[2]
+            event_info = fight[3]
+
+            if score_tables is None:
+                print(error_msg)
+            else:
+                print('\n' + fight_result + '\n')
+                if event_info:
+                    print(event_info + '\n')
+                else:
+                    print('No event info available.\n')
+                pprint(score_tables)
+                print('\nMEDIA SCORES\n')
+                if media_scores:
+                    pprint(media_scores)
+                else:
+                    print('No scores available.')
     else:
-        print('\n' + fight_result + '\n')
-        if event_info:
-            print(event_info + '\n')
-        else:
-            print('No event info available.\n')
-        pprint(score_tables)
-        print('\nMEDIA SCORES\n')
-        if media_scores:
-            pprint(media_scores)
-        else:
-            print('No scores available.')
+        print(error_msg)
 
 
 if __name__ == '__main__':

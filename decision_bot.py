@@ -3,12 +3,13 @@ import traceback
 import praw
 import praw.exceptions
 import string
+import time
 import fight_finder
 import info
 
 fail_text = 'I couldn\'t find this fight! Try checking your spelling, or perhaps the ' \
-            'fight didn\'t end in a decision. mmadecisions.com may also be down. ' \
-            'Please let me know if I\'ve made a mistake.'
+            'fight didn\'t end in a decision. [mmadecisions.com](http://mmadecisions.com/) ' \
+            'may also be down. Please let me know if I\'ve made a mistake.'
 
 
 def build_comment_reply(score_tables, fight_result, media_scores, event_info):
@@ -70,7 +71,7 @@ def build_media_scores_text(media_scores):
     if not media_scores:
         return 'No media scores available for this fight.'
     else:
-        media_text = '**MEDIA SCORES**\n\n'
+        media_text = '**MEDIA MEMBER SCORES**\n\n'
         total = len(media_scores)
         covered = set()
 
@@ -78,7 +79,7 @@ def build_media_scores_text(media_scores):
             if score not in covered:
                 count = media_scores.count(score)
                 media_text += '- **' + str(count) + '/' + str(total) + \
-                              '** media member(s) scored it **' + score[0] + ' ' + score[1] + '**.\n'
+                              '** people scored it **' + score[0] + ' ' + score[1] + '**.\n'
                 covered.add(score)
 
         return media_text
@@ -119,11 +120,15 @@ def tester():
     print('Enter fight:')
     input_fight = input()
     print('Searching...')
-    score_tables, fight_result, media_scores, event_info = fight_finder.get_score_cards_from_input(input_fight)
-    if score_tables is None:
+    fight_info = fight_finder.get_score_cards_from_input(input_fight)
+    if not fight_info:
         print(fail_text)
     else:
-        print(build_comment_reply(score_tables, fight_result, media_scores, event_info))
+        for fight in fight_info:
+            if fight[0] is None:
+                print(fail_text)
+            else:
+                print(build_comment_reply(fight[0], fight[1], fight[2], fight[3]))
 
 
 def main():
@@ -170,22 +175,37 @@ def main():
                     # Only take the first line of comment
                     if '\n' in text:
                         text = text.split('\n')[0]
+
                     # Remove 'decisionbot' string, whitespace, and punctuation
                     input_fight = text.replace('decisionbot', '')\
                         .replace('decision bot', ' ').strip(string.punctuation + ' ')
+
                     # Retrieve the score cards
-                    score_tables, fight_result, media_scores, event_info = \
-                        fight_finder.get_score_cards_from_input(input_fight)
+                    fight_info = fight_finder.get_score_cards_from_input(input_fight)
+
                     if fight_finder.DEBUG:
                         print('Sending reply to initial comment...')
-                    if score_tables is None:
+                    if not fight_info:
                         comment.reply(fail_text)
                         log_comment(comment_log_name, comment.id)
                     else:
-                        comment.reply(build_comment_reply(score_tables, fight_result, media_scores, event_info))
-                        log_comment(comment_log_name, comment.id)
+                        count = 0
+                        for fight in fight_info:
+                            if fight[0] is None:
+                                comment.reply(fail_text)
+                                log_comment(comment_log_name, comment.id)
+                                break
+                            else:
+                                # Make sure the bot isn't commenting too fast
+                                if count != 0:
+                                    time.sleep(2)
+                                count += 1
+                                comment.reply(build_comment_reply(fight[0], fight[1], fight[2], fight[3]))
+                                log_comment(comment_log_name, comment.id)
+
                     if fight_finder.DEBUG:
                         print('Success!')
+
                     # Let me know that the bot has been triggered
                     reddit.redditor(info.personal_username).message(
                         'DecisionBot triggered', comment.body + '\nwww.reddit.com' + comment.permalink(fast=True))
