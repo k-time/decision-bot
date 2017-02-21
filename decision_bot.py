@@ -16,6 +16,9 @@ def build_comment_reply(score_tables, fight_result, media_scores, event_info):
     comment = fight_result + '\n\n'
     if event_info is not None:
         comment += event_info + '\n\n'
+        # Easter egg joke
+        if 'Diaz vs. Condit' in event_info:
+            comment = '**DIAZ 1 2 5**\n\nI mean...\n\n' + comment
 
     # Building the first and second rows
     row_1 = 'ROUND'
@@ -83,6 +86,28 @@ def build_media_scores_text(media_scores):
                 covered.add(score)
 
         return media_text
+
+
+# Replace nicknames and common name mistakes in user input
+def create_nickname_dict(nickname_db):
+    nickname_dict = {}
+    try:
+        with open(nickname_db) as f:
+            for line in f:
+                line = line.rstrip('\n')
+                names = line.split(':')
+                if len(names) == 2:
+                    nickname_dict[names[0]] = names[1]
+    except FileNotFoundError:
+        print('File \'' + nickname_db + '\' not found!')
+
+    return nickname_dict
+
+
+def replace_nicknames(text, nickname_dict):
+    for i, j in nickname_dict.items():
+        text = text.replace(i, j)
+    return text
 
 
 def log_message(log_name, comment_body, message):
@@ -162,6 +187,9 @@ def main():
         log_error(log_name, error_text, exc_info)
         sys.exit(1)
 
+    # Create the dictionary of nicknames to be replaced
+    nickname_dict = create_nickname_dict(info.nickname_filename)
+
     # Monitoring incoming comment stream from r/mma
     subreddit = reddit.subreddit('bottesting')
 
@@ -179,6 +207,9 @@ def main():
                     # Remove 'decisionbot' string, whitespace, and punctuation
                     input_fight = text.replace('decisionbot', '')\
                         .replace('decision bot', ' ').strip(string.punctuation + ' ')
+
+                    # Replace nicknames in input
+                    input_fight = replace_nicknames(input_fight, nickname_dict)
 
                     # Retrieve the score cards
                     fight_info = fight_finder.get_score_cards_from_input(input_fight)
