@@ -241,10 +241,14 @@ def main():
                     if fight_finder.DEBUG:
                         print('Success!')
 
-                    # Let me know that the bot has been triggered
+                    # Let me know that the bot has been triggered.
+                    # Permalink requires different formatting for desktop vs. mobile website.
+                    permalink = 'www.reddit.com' + comment.permalink(fast=True)
                     reddit.redditor(info.personal_username).message(
-                        'DecisionBot triggered', comment.body + '\nwww.reddit.com' +
-                                                 comment.permalink(fast=True).replace('//','/'))
+                        'DecisionBot triggered',
+                        comment.body
+                        + '\nMobile: ' + permalink.replace('//', '/')
+                        + '\nDesktop: ' + permalink)
 
             except Exception:
                 if fight_finder.DEBUG:
