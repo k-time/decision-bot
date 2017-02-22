@@ -17,7 +17,7 @@ def build_comment_reply(score_tables, fight_result, media_scores, event_info):
     if event_info is not None:
         comment += event_info + '\n\n'
         # Easter egg joke
-        if 'Diaz vs. Condit' in event_info:
+        if '**CARLOS CONDIT** defeats **NICK DIAZ**' in fight_result:
             comment = '**DIAZ 1 2 5**\n\nI mean...\n\n' + comment
 
     # Building the first and second rows
@@ -142,8 +142,10 @@ def log_comment(comment_log_name, comment_id):
 
 
 def tester():
+    nickname_dict = create_nickname_dict(info.nickname_filename)
     print('Enter fight:')
     input_fight = input()
+    input_fight = replace_nicknames(input_fight, nickname_dict)
     print('Searching...')
     fight_info = fight_finder.get_score_cards_from_input(input_fight)
     if not fight_info:
@@ -190,7 +192,7 @@ def main():
     # Create the dictionary of nicknames to be replaced
     nickname_dict = create_nickname_dict(info.nickname_filename)
 
-    # Monitoring incoming comment stream from r/mma
+    # Monitoring incoming comment stream from subreddit
     subreddit = reddit.subreddit('bottesting')
 
     for comment in subreddit.stream.comments():
@@ -206,7 +208,7 @@ def main():
 
                     # Remove 'decisionbot' string, whitespace, and punctuation
                     input_fight = text.replace('decisionbot', '')\
-                        .replace('decision bot', ' ').strip(string.punctuation + ' ')
+                        .replace('decision bot', '').strip(string.punctuation + ' ')
 
                     # Replace nicknames in input
                     input_fight = replace_nicknames(input_fight, nickname_dict)
@@ -230,6 +232,8 @@ def main():
                                 # Make sure the bot isn't commenting too fast
                                 if count != 0:
                                     time.sleep(2)
+                                    if fight_finder.DEBUG:
+                                        print('Sending reply with next fight...')
                                 count += 1
                                 comment.reply(build_comment_reply(fight[0], fight[1], fight[2], fight[3]))
                                 log_comment(comment_log_name, comment.id)
@@ -239,7 +243,8 @@ def main():
 
                     # Let me know that the bot has been triggered
                     reddit.redditor(info.personal_username).message(
-                        'DecisionBot triggered', comment.body + '\nwww.reddit.com' + comment.permalink(fast=True))
+                        'DecisionBot triggered', comment.body + '\nwww.reddit.com' +
+                                                 comment.permalink(fast=True).replace('//','/'))
 
             except Exception:
                 if fight_finder.DEBUG:

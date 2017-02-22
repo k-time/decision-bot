@@ -4,15 +4,13 @@ from bs4 import BeautifulSoup
 from unidecode import unidecode
 from pprint import pprint
 from datetime import datetime
-import re
 
-# Periods are stripped out of inputs, so no need for "v." and "vs." in VERSUS_LIST
-VERSUS_LIST = ['v', 'vs', 'versus']
+VERSUS_LIST = [' v ', ' v. ', ' vs ', ' vs. ', ' versus ', ' versus. ']
 HOME_URL = 'http://mmadecisions.com/'
 SEARCH_URL = 'http://mmadecisions.com/search.jsp?s='
 FIGHTER_SUB_URL = 'mmadecisions.com/fighter/'
 SEARCH_SUB_URL = 'mmadecisions.com/search'
-DEBUG = True
+DEBUG = False
 
 
 def get_score_tables(fighter_1, fighter_2):
@@ -301,12 +299,10 @@ def sanitize_url(url):
     return unidecode(url)
 
 
-"""
-Check if a fight number is included in input, ex. Lawler vs. Hendricks 2.
-Right now, function only can be used for removing numbers from input
-because mmadecisions.com does not record the fight number, and fights
-that do not end in a decision are not included on the website.
-"""
+# Check if a fight number is included in input, ex. Lawler vs. Hendricks 2.
+# Right now, function only can be used for removing numbers from input
+# because mmadecisions.com does not record the fight number, and fights
+# that do not end in a decision are not included on the website.
 def get_fight_num(input_fight):
     last_char = input_fight[-1]
     if last_char.isdigit():
@@ -319,7 +315,7 @@ def get_fight_num(input_fight):
 
 # Searches for variations of "versus" in the input
 def get_fighters_from_input(input_fight):
-    input_fight = input_fight.strip().replace('.', '')
+    input_fight = input_fight.strip()
 
     if input_fight == '':
         return None, None
@@ -328,9 +324,8 @@ def get_fighters_from_input(input_fight):
     fight_num, input_fight = get_fight_num(input_fight)
 
     for word in VERSUS_LIST:
-        match = re.search(r'\b' + re.escape(word) + r'\b', input_fight)
-        if match:
-            index = match.start()
+        index = input_fight.find(word)
+        if index != -1:
             fighter_1 = input_fight[:index].strip()
             fighter_2 = input_fight[index + len(word):].strip()
             return fighter_1, fighter_2
@@ -340,7 +335,7 @@ def get_fighters_from_input(input_fight):
 
 # Used when variations of "versus" are not found in the input
 def guess_fighters_from_input(input_fight):
-    input_fight = input_fight.strip().replace('.', '')
+    input_fight = input_fight.strip()
     word_list = input_fight.split()
     word_count = len(word_list)
     name_combos = []
@@ -394,8 +389,8 @@ def get_score_cards_from_input(input_fight):
                 print('Trying fighter 2: ' + combo[1] + '\n')
             fight_info = get_score_tables(combo[0], combo[1])
             if fight_info:
-                for fight in fight_info:
-                    if fight[0] is not None:
+                if fight_info[0]:
+                    if fight_info[0][0] is not None:
                         break
             elif DEBUG:
                 print('\nCould not find fight- guessing names again...')
