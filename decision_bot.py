@@ -4,16 +4,19 @@ import praw
 import praw.exceptions
 import string
 import time
+import random
 import logging
 import fight_finder
 import config
 
 FAIL_TEXT = 'I couldn\'t find this fight! Check your spelling, ' \
             'or maybe the fight didn\'t end in a decision.'
-DECISION_SPELLINGS = ('decision', 'decison', 'desicion', 'descision')
+TROUBLESHOOT_TEXT = ' [Troubleshooting](https://s3.amazonaws.com/decisionbot/error_message.txt)'
+DECISION_SPELLINGS = ['decision', 'decison', 'desicion', 'descision']
 # Set logging level to INFO for status output, WARNING for no output
 logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
 logger = logging.getLogger('DECISION_BOT')
+
 
 def build_comment_reply(score_tables, fight_result, media_scores, event_info):
     comment = fight_result + '\n\n'
@@ -126,6 +129,20 @@ def remove_trigger_word(text):
     return text
 
 
+def generate_fail_text():
+    phrases = [
+        'THOUGHT YOU HAD A FIGHT BOI!!',
+        'I am not impressed by your search query.',
+        'Sorry, my precision was not very precise.',
+        'Who da fook are these guys?'  # Try again buddeh, Try again ya goof
+    ]
+    num = random.random()
+    if num < .9:
+        return random.choice(phrases) + TROUBLESHOOT_TEXT
+    else:
+        return 'I couldn\'t find this fight!' + TROUBLESHOOT_TEXT
+
+
 def log_message(log_name, comment_body, message):
     try:
         with open(log_name, 'a') as f:
@@ -234,13 +251,13 @@ def main():
 
                     logger.info('Sending reply to initial comment...')
                     if not fight_info:
-                        comment.reply(FAIL_TEXT)
+                        comment.reply(generate_fail_text())
                         log_comment(comment_log_name, comment.id)
                     else:
                         count = 0
                         for fight in fight_info:
                             if fight[0] is None:
-                                comment.reply(FAIL_TEXT)
+                                comment.reply(generate_fail_text())
                                 log_comment(comment_log_name, comment.id)
                                 break
                             else:

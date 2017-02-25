@@ -9,7 +9,7 @@ import logging
 import sys
 
 
-VERSUS_LIST = (' v ', ' v. ', ' vs ', ' vs. ', ' versus ', ' versus. ')
+VERSUS_LIST = [' v ', ' v. ', ' vs ', ' vs. ', ' versus ', ' versus. ']
 HOME_URL = 'http://mmadecisions.com/'
 SEARCH_URL = 'http://mmadecisions.com/search.jsp?s='
 FIGHTER_SUB_URL = 'mmadecisions.com/fighter/'
@@ -21,34 +21,34 @@ logger = logging.getLogger('FIGHT_FINDER')
 
 def get_score_tables(fighter_1, fighter_2):
     if fighter_1 and fighter_2:
-        fight_urls = get_fight_urls(fighter_1, fighter_2)
-        return get_score_tables_from_fight_page(fight_urls)
+        fight_urls = _get_fight_urls(fighter_1, fighter_2)
+        return _get_score_tables_from_fight_page(fight_urls)
     return None
 
 
 # There could be multiple fights due to rematches
-def get_fight_urls(fighter_1, fighter_2):
+def _get_fight_urls(fighter_1, fighter_2):
     # First, check if there's a fight url match for each search term
-    fight_list_1 = get_fight_url_list(unidecode(fighter_1).replace(' ', '+'))
-    fight_list_2 = get_fight_url_list(unidecode(fighter_2).replace(' ', '+'))
-    return find_fight_url_matches(fight_list_1, fight_list_2)
+    fight_list_1 = _get_fight_url_list(unidecode(fighter_1).replace(' ', '+'))
+    fight_list_2 = _get_fight_url_list(unidecode(fighter_2).replace(' ', '+'))
+    return _find_fight_url_matches(fight_list_1, fight_list_2)
     # Could possibly do other methods later
 
 
-def find_fight_url_matches(fight_list_1, fight_list_2):
+def _find_fight_url_matches(fight_list_1, fight_list_2):
     # Need to return a list of all matches, in case of rematches
     fight_urls = []
     if fight_list_1 is not None and fight_list_2 is not None:
         for fight_url_1 in fight_list_1:
             for fight_url_2 in fight_list_2:
-                url_1 = sanitize_url(fight_url_1)
-                url_2 = sanitize_url(fight_url_2)
+                url_1 = _sanitize_url(fight_url_1)
+                url_2 = _sanitize_url(fight_url_2)
                 if url_1 == url_2:
                     fight_urls.append(url_1)
     return fight_urls
 
 
-def get_fight_url_list(fighter):
+def _get_fight_url_list(fighter):
     # Entering fighter as query on initial search page
     query_url = SEARCH_URL + fighter
     try:
@@ -57,26 +57,30 @@ def get_fight_url_list(fighter):
     # Issue with mmadecisions.com: ascii url redirects to non-ascii url for names with accented characters
     # Solution: use requests.get() instead of urlopen()
     except (urllib.error.HTTPError, UnicodeEncodeError):
-        page = requests.get(query_url)
-        url = page.url
-        # Currently there is a search functionality issue with mmadecisions.com
-        url = url.replace('mmadecisions/fighter', 'fighter')
+        try:
+            page = requests.get(query_url)
+            url = page.url
+            # Currently there is a search functionality issue with mmadecisions.com
+            url = url.replace('mmadecisions/fighter', 'fighter')
+        except requests.HTTPError:
+            logger.info('Could not open url ' + query_url)
+            return None
 
     # If page redirects to a fighter url
     if FIGHTER_SUB_URL in url:
         logger.info('I\'m on a fighter page. Retrieving my fights...')
-        return get_fights_from_fighter_page(url)
+        return _get_fights_from_fighter_page(url)
     # If page redirects to a search url
     elif SEARCH_SUB_URL in url:
         logger.info('I\'m on a search page. Retrieving all fights, if any...')
-        return get_fights_from_search_page(url)
+        return _get_fights_from_search_page(url)
     # If page redirects to any other url
     else:
         logger.info('I\'m on an irrelevant page. Returning none...')
         return None
 
 
-def get_fights_from_fighter_page(fighter_page_url):
+def _get_fights_from_fighter_page(fighter_page_url):
     # List of fight urls to be returned
     list_of_fights = []
 
@@ -92,14 +96,14 @@ def get_fights_from_fighter_page(fighter_page_url):
         return None
     for url in fight_urls:
         if 'decision/' in url['href']:
-            clean_url = sanitize_url(url['href'])
+            clean_url = _sanitize_url(url['href'])
             logger.info('\t\t' + clean_url)
             list_of_fights.append(clean_url)
 
     return list_of_fights
 
 
-def get_fights_from_search_page(search_page_url):
+def _get_fights_from_search_page(search_page_url):
     # List of fight urls to be returned
     list_of_fights = []
 
@@ -116,7 +120,7 @@ def get_fights_from_search_page(search_page_url):
     if fighter_names is None:
         return None
 
-    fights_on_page = get_fights_on_page(fighter_names)
+    fights_on_page = _get_fights_on_page(fighter_names)
     if fights_on_page is None:
         return None
     else:
@@ -125,7 +129,7 @@ def get_fights_from_search_page(search_page_url):
     # If there are additional pages, get all fighters from those fighters as well
     other_fighter_names = fighter_column.find_all('div', attrs={'style': 'display:none;'})
     for page_of_names in other_fighter_names:
-        fights_on_page = get_fights_on_page(page_of_names)
+        fights_on_page = _get_fights_on_page(page_of_names)
         if fights_on_page is None:
             return None
         else:
@@ -135,7 +139,7 @@ def get_fights_from_search_page(search_page_url):
 
 
 # Helper function for above
-def get_fights_on_page(fighter_names):
+def _get_fights_on_page(fighter_names):
     # The list of fight urls on the current page
     fights_on_page = []
 
@@ -144,16 +148,16 @@ def get_fights_on_page(fighter_names):
         return None
     for url in fighter_urls:
         if url['href'].startswith('fighter/'):
-            clean_url = sanitize_url(url['href'])
+            clean_url = _sanitize_url(url['href'])
             logger.info(clean_url)
-            fights = get_fights_from_fighter_page(clean_url)
+            fights = _get_fights_from_fighter_page(clean_url)
             if fights is not None:
                 fights_on_page.extend(fights)
 
     return fights_on_page
 
 
-def get_score_tables_from_fight_page(fight_urls):
+def _get_score_tables_from_fight_page(fight_urls):
     if not fight_urls:
         return None
 
@@ -242,7 +246,7 @@ def get_score_tables_from_fight_page(fight_urls):
                 event_info = info[0].strip()
                 if len(info) >= 2:
                     # Adding the event date
-                    event_date = get_full_date(info[1].strip())
+                    event_date = _get_full_date(info[1].strip())
                     event_info += ' — ' + event_date
                     event_info = '^(' + event_info + ')'
             else:
@@ -269,7 +273,7 @@ def get_score_tables_from_fight_page(fight_urls):
     return fight_info
 
 
-def get_full_date(num_date):
+def _get_full_date(num_date):
     try:
         # Convert numerical date YYYY-mm-dd to full date (ex. January 1, 2000)
         d = datetime.strptime(num_date, '%Y-%m-%d')
@@ -278,7 +282,7 @@ def get_full_date(num_date):
         return num_date
 
 
-def sanitize_url(url):
+def _sanitize_url(url):
     # Check if the url is a valid url
     if 'decision/' not in url and 'fighter/' not in url:
         return None
@@ -306,7 +310,7 @@ def sanitize_url(url):
 # Right now, function only can be used for removing numbers from input
 # because mmadecisions.com does not record the fight number, and fights
 # that do not end in a decision are not included on the website.
-def get_fight_num(input_fight):
+def _get_fight_num(input_fight):
     # Remove roman numerals
     roman_numerals = ('i', 'ii', 'iii')
     for num in roman_numerals:
@@ -326,13 +330,13 @@ def get_fight_num(input_fight):
 
 
 # Searches for variations of "versus" in the input
-def get_fighters_from_input(input_fight):
+def _get_fighters_from_input(input_fight):
     input_fight = input_fight.strip()
     if input_fight == '':
         return None, None
 
     # TODO: How to implement fight numbers?
-    fight_num, input_fight = get_fight_num(input_fight)
+    fight_num, input_fight = _get_fight_num(input_fight)
 
     for word in VERSUS_LIST:
         index = input_fight.find(word)
@@ -345,13 +349,13 @@ def get_fighters_from_input(input_fight):
 
 
 # Used when variations of "versus" are not found in the input
-def guess_fighters_from_input(input_fight):
+def _guess_fighters_from_input(input_fight):
     input_fight = input_fight.strip()
     if input_fight == '':
         return None, None
 
     # TODO: How to implement fight numbers?
-    fight_num, input_fight = get_fight_num(input_fight)
+    fight_num, input_fight = _get_fight_num(input_fight)
 
     word_list = input_fight.split()
     word_count = len(word_list)
@@ -378,7 +382,7 @@ def guess_fighters_from_input(input_fight):
 
 
 def get_score_cards_from_input(input_fight):
-    fighter_1, fighter_2 = get_fighters_from_input(input_fight)
+    fighter_1, fighter_2 = _get_fighters_from_input(input_fight)
     fight_info = None
 
     # Input is blank
@@ -395,7 +399,7 @@ def get_score_cards_from_input(input_fight):
     # Variations of "versus" were not found, so try to find the fighter names
     else:
         logger.info('\nNo \'versus\' found in input, so guessing fighters...\n')
-        name_combos = guess_fighters_from_input(input_fight)
+        name_combos = _guess_fighters_from_input(input_fight)
         for combo in name_combos:
             logger.info('Trying fighter 1: ' + combo[0])
             logger.info('Trying fighter 2: ' + combo[1] + '\n')
