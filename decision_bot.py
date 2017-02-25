@@ -4,13 +4,16 @@ import praw
 import praw.exceptions
 import string
 import time
+import logging
 import fight_finder
-import info
+import config
 
-FAIL_TEXT = 'I couldn\'t find this fight! Try checking your spelling, ' \
-            'or perhaps the fight didn\'t end in a decision.'
+FAIL_TEXT = 'I couldn\'t find this fight! Check your spelling, ' \
+            'or maybe the fight didn\'t end in a decision.'
 DECISION_SPELLINGS = ('decision', 'decison', 'desicion', 'descision')
-
+# Set logging level to INFO for status output, WARNING for no output
+logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
+logger = logging.getLogger('DECISION_BOT')
 
 def build_comment_reply(score_tables, fight_result, media_scores, event_info):
     comment = fight_result + '\n\n'
@@ -155,7 +158,7 @@ def log_comment(comment_log_name, comment_id):
 
 
 def tester():
-    nickname_dict = create_nickname_dict(info.nickname_filename)
+    nickname_dict = create_nickname_dict(config.nickname_filename)
     print('Enter fight:')
     input_fight = input()
     input_fight = replace_nicknames(input_fight, nickname_dict)
@@ -172,20 +175,21 @@ def tester():
 
 
 def main():
-    # Check for debug mode
+    # Check for debug flag
     if '-d' in sys.argv:
-        fight_finder.DEBUG = True
+        logger.setLevel(logging.INFO)
+        fight_finder.logger.setLevel(logging.INFO)
 
     # Authentication
     reddit = praw.Reddit(
-            client_id=info.my_client_id,
-            client_secret=info.my_client_secret,
-            user_agent=info.my_user_agent,
-            username=info.my_username,
-            password=info.my_pw)
+            client_id=config.my_client_id,
+            client_secret=config.my_client_secret,
+            user_agent=config.my_user_agent,
+            username=config.my_username,
+            password=config.my_pw)
 
-    log_name = info.log_name
-    comment_log_name = info.comment_log_name
+    log_name = config.log_name
+    comment_log_name = config.comment_log_name
 
     # Open log of previous bot comments
     try:
@@ -203,10 +207,10 @@ def main():
         sys.exit(1)
 
     # Create the dictionary of nicknames to be replaced
-    nickname_dict = create_nickname_dict(info.nickname_filename)
+    nickname_dict = create_nickname_dict(config.nickname_filename)
 
     # Monitoring incoming comment stream from subreddit
-    subreddit = reddit.subreddit('bottesting+mma+betsmma')
+    subreddit = reddit.subreddit(config.target_subreddits)
 
     for comment in subreddit.stream.comments():
         text = comment.body.lower().strip()
@@ -228,8 +232,7 @@ def main():
                     # Retrieve the score cards
                     fight_info = fight_finder.get_score_cards_from_input(input_fight)
 
-                    if fight_finder.DEBUG:
-                        print('Sending reply to initial comment...')
+                    logger.info('Sending reply to initial comment...')
                     if not fight_info:
                         comment.reply(FAIL_TEXT)
                         log_comment(comment_log_name, comment.id)
@@ -244,27 +247,24 @@ def main():
                                 # Make sure the bot isn't commenting too fast
                                 if count != 0:
                                     time.sleep(2)
-                                    if fight_finder.DEBUG:
-                                        print('Sending reply with next fight...')
+                                    logger.info('Sending reply with next fight...')
                                 count += 1
                                 comment.reply(build_comment_reply(fight[0], fight[1], fight[2], fight[3]))
                                 log_comment(comment_log_name, comment.id)
 
-                    if fight_finder.DEBUG:
-                        print('Success!')
+                    logger.info('Success!')
 
                     # Let me know that the bot has been triggered.
                     # Permalink requires different formatting for desktop vs. mobile website.
                     permalink = 'www.reddit.com' + comment.permalink(fast=True)
-                    reddit.redditor(info.personal_username).message(
+                    reddit.redditor(config.personal_username).message(
                         'DecisionBot triggered',
                         comment.body
                         + '\n\nMobile: \n\n' + permalink.replace('//', '/')
                         + '\n\nDesktop: \n\n' + permalink)
 
             except Exception:
-                if fight_finder.DEBUG:
-                    print('Error occurred.')
+                logger.info('Error occurred.')
                 exc_info = sys.exc_info()
                 log_error(log_name, comment.body, exc_info)
                 try:
@@ -277,6 +277,7 @@ def main():
                         if comment.author is not None:
                             reddit.redditor(comment.author.name).message(
                                 'Sorry!', 'There was an error with DecisionBot- I will look into this issue ASAP.')
+                            log_comment(comment_log_name, comment.id)
                     except praw.exceptions.PRAWException:
                         exc_info = sys.exc_info()
                         log_error(log_name, comment.body, exc_info)

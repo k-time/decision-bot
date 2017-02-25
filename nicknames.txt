@@ -31,3 +31,5 @@ kj :k.j.
  kj: k.j.
 tj :t.j. 
  tj: t.j.
+randemie:randamie
+gdr:germaine de randamie

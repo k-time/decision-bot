@@ -1,17 +1,22 @@
+from bs4 import BeautifulSoup
+from unidecode import unidecode
 from urllib.request import urlopen
 import urllib.error
 import requests
-from bs4 import BeautifulSoup
-from unidecode import unidecode
 from pprint import pprint
 from datetime import datetime
+import logging
+import sys
+
 
 VERSUS_LIST = (' v ', ' v. ', ' vs ', ' vs. ', ' versus ', ' versus. ')
 HOME_URL = 'http://mmadecisions.com/'
 SEARCH_URL = 'http://mmadecisions.com/search.jsp?s='
 FIGHTER_SUB_URL = 'mmadecisions.com/fighter/'
 SEARCH_SUB_URL = 'mmadecisions.com/search'
-DEBUG = False
+# Set logging level to INFO for status output, WARNING for no output
+logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
+logger = logging.getLogger('FIGHT_FINDER')
 
 
 def get_score_tables(fighter_1, fighter_2):
@@ -59,18 +64,15 @@ def get_fight_url_list(fighter):
 
     # If page redirects to a fighter url
     if FIGHTER_SUB_URL in url:
-        if DEBUG:
-            print('I\'m on a fighter page. Retrieving my fights...')
+        logger.info('I\'m on a fighter page. Retrieving my fights...')
         return get_fights_from_fighter_page(url)
     # If page redirects to a search url
     elif SEARCH_SUB_URL in url:
-        if DEBUG:
-            print('I\'m on a search page. Retrieving all fights, if any...')
+        logger.info('I\'m on a search page. Retrieving all fights, if any...')
         return get_fights_from_search_page(url)
     # If page redirects to any other url
     else:
-        if DEBUG:
-            print('I\'m on an irrelevant page. Returning none...')
+        logger.info('I\'m on an irrelevant page. Returning none...')
         return None
 
 
@@ -91,8 +93,7 @@ def get_fights_from_fighter_page(fighter_page_url):
     for url in fight_urls:
         if 'decision/' in url['href']:
             clean_url = sanitize_url(url['href'])
-            if DEBUG:
-                print('\t\t' + clean_url)
+            logger.info('\t\t' + clean_url)
             list_of_fights.append(clean_url)
 
     return list_of_fights
@@ -144,8 +145,7 @@ def get_fights_on_page(fighter_names):
     for url in fighter_urls:
         if url['href'].startswith('fighter/'):
             clean_url = sanitize_url(url['href'])
-            if DEBUG:
-                print(clean_url)
+            logger.info(clean_url)
             fights = get_fights_from_fighter_page(clean_url)
             if fights is not None:
                 fights_on_page.extend(fights)
@@ -383,40 +383,34 @@ def get_score_cards_from_input(input_fight):
 
     # Input is blank
     if input_fight.strip() == '':
-        if DEBUG:
-            print('\nInput fight is blank! Please try again.')
+        logger.info('\nInput fight is blank! Please try again.')
     # One or both of the fighter names is whitespace
     elif fighter_1 == '' or fighter_2 == '':
-        if DEBUG:
-            print('\nOne or both of the fighter names is blank! Please try again.')
+        logger.info('\nOne or both of the fighter names is blank! Please try again.')
     # Fighter names found
     elif fighter_1 is not None and fighter_2 is not None:
-        if DEBUG:
-            print('\nFighter 1: ' + fighter_1)
-            print('Fighter 2: ' + fighter_2 + '\n')
+        logger.info('Fighter 1: ' + fighter_1)
+        logger.info('Fighter 2: ' + fighter_2)
         fight_info = get_score_tables(fighter_1, fighter_2)
     # Variations of "versus" were not found, so try to find the fighter names
     else:
-        if DEBUG:
-            print('\nNo \'versus\' found in input, so guessing fighters...\n')
+        logger.info('\nNo \'versus\' found in input, so guessing fighters...\n')
         name_combos = guess_fighters_from_input(input_fight)
         for combo in name_combos:
-            if DEBUG:
-                print('Trying fighter 1: ' + combo[0])
-                print('Trying fighter 2: ' + combo[1] + '\n')
+            logger.info('Trying fighter 1: ' + combo[0])
+            logger.info('Trying fighter 2: ' + combo[1] + '\n')
             fight_info = get_score_tables(combo[0], combo[1])
             if fight_info:
                 if fight_info[0]:
                     if fight_info[0][0] is not None:
                         break
-            elif DEBUG:
-                print('\nCould not find fight- guessing names again...')
+            else:
+                logger.info('\nCould not find fight- guessing names again...')
 
-    if DEBUG:
-        if not fight_info:
-            print('\nUnable to find fight!')
-        else:
-            print('\nFight found!')
+    if not fight_info:
+        logger.info('Unable to find fight!')
+    else:
+        logger.info('Fight found!')
 
     return fight_info
 
