@@ -1,11 +1,12 @@
 from urllib.request import urlopen
+import urllib.error
 import requests
 from bs4 import BeautifulSoup
 from unidecode import unidecode
 from pprint import pprint
 from datetime import datetime
 
-VERSUS_LIST = [' v ', ' v. ', ' vs ', ' vs. ', ' versus ', ' versus. ']
+VERSUS_LIST = (' v ', ' v. ', ' vs ', ' vs. ', ' versus ', ' versus. ')
 HOME_URL = 'http://mmadecisions.com/'
 SEARCH_URL = 'http://mmadecisions.com/search.jsp?s='
 FIGHTER_SUB_URL = 'mmadecisions.com/fighter/'
@@ -50,9 +51,11 @@ def get_fight_url_list(fighter):
         url = page.geturl()
     # Issue with mmadecisions.com: ascii url redirects to non-ascii url for names with accented characters
     # Solution: use requests.get() instead of urlopen()
-    except UnicodeEncodeError:
+    except (urllib.error.HTTPError, UnicodeEncodeError):
         page = requests.get(query_url)
         url = page.url
+        # Currently there is a search functionality issue with mmadecisions.com
+        url = url.replace('mmadecisions/fighter', 'fighter')
 
     # If page redirects to a fighter url
     if FIGHTER_SUB_URL in url:
@@ -304,19 +307,27 @@ def sanitize_url(url):
 # because mmadecisions.com does not record the fight number, and fights
 # that do not end in a decision are not included on the website.
 def get_fight_num(input_fight):
+    # Remove roman numerals
+    roman_numerals = ('i', 'ii', 'iii')
+    for num in roman_numerals:
+        if input_fight.endswith(' ' + num):
+            fight_num = len(num)
+            new_input_fight = input_fight[:-(len(num)+1)]
+            return fight_num, new_input_fight
+
+    # Or remove digits
     last_char = input_fight[-1]
     if last_char.isdigit():
         fight_num = int(last_char)
         new_input_fight = input_fight[:-1].strip()
         return fight_num, new_input_fight
-    else:
-        return 1, input_fight
+
+    return 1, input_fight
 
 
 # Searches for variations of "versus" in the input
 def get_fighters_from_input(input_fight):
     input_fight = input_fight.strip()
-
     if input_fight == '':
         return None, None
 
@@ -336,6 +347,12 @@ def get_fighters_from_input(input_fight):
 # Used when variations of "versus" are not found in the input
 def guess_fighters_from_input(input_fight):
     input_fight = input_fight.strip()
+    if input_fight == '':
+        return None, None
+
+    # TODO: How to implement fight numbers?
+    fight_num, input_fight = get_fight_num(input_fight)
+
     word_list = input_fight.split()
     word_count = len(word_list)
     name_combos = []

@@ -10,6 +10,7 @@ jds:junior dos santos
 dhk:dong hyun kim
 mayhem:jason
 tank abbott:david abbott
+ops:ovince saint preux
 st preux:saint preux
 st. preux:saint preux
 minotauro:antonio rodrigo nogueira
@@ -20,6 +21,8 @@ lil nog:antonio rogerio nogueira
 gustaffson:gustafsson
 st.-pierre:st-pierre
 aubin mercier:aubin-mercier
+dillishaw:dillashaw
+king mo:muhammed lawal
 rda :rafael dos anjos 
  rda: rafael dos anjos
 bj :b.j. 

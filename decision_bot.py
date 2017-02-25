@@ -7,9 +7,9 @@ import time
 import fight_finder
 import info
 
-fail_text = 'I couldn\'t find this fight! Try checking your spelling, or perhaps the ' \
-            'fight didn\'t end in a decision. [mmadecisions.com](http://mmadecisions.com/) ' \
-            'may also be down. Please let me know if I\'ve made a mistake.'
+FAIL_TEXT = 'I couldn\'t find this fight! Try checking your spelling, ' \
+            'or perhaps the fight didn\'t end in a decision.'
+DECISION_SPELLINGS = ('decision', 'decison', 'desicion', 'descision')
 
 
 def build_comment_reply(score_tables, fight_result, media_scores, event_info):
@@ -110,6 +110,19 @@ def replace_nicknames(text, nickname_dict):
     return text
 
 
+def triggered(text):
+    for word in DECISION_SPELLINGS:
+        if text.startswith(word + 'bot') or text.startswith(word + ' bot'):
+            return True
+    return False
+
+
+def remove_trigger_word(text):
+    for word in DECISION_SPELLINGS:
+        text = text.replace(word + 'bot', '').replace(word + ' bot', '')
+    return text
+
+
 def log_message(log_name, comment_body, message):
     try:
         with open(log_name, 'a') as f:
@@ -149,11 +162,11 @@ def tester():
     print('Searching...')
     fight_info = fight_finder.get_score_cards_from_input(input_fight)
     if not fight_info:
-        print(fail_text)
+        print(FAIL_TEXT)
     else:
         for fight in fight_info:
             if fight[0] is None:
-                print(fail_text)
+                print(FAIL_TEXT)
             else:
                 print(build_comment_reply(fight[0], fight[1], fight[2], fight[3]))
 
@@ -193,12 +206,12 @@ def main():
     nickname_dict = create_nickname_dict(info.nickname_filename)
 
     # Monitoring incoming comment stream from subreddit
-    subreddit = reddit.subreddit('bottesting')
+    subreddit = reddit.subreddit('bottesting+mma+betsmma')
 
     for comment in subreddit.stream.comments():
         text = comment.body.lower().strip()
         # Found a match
-        if text.startswith('decisionbot') or text.startswith('decision bot'):
+        if triggered(text):
             try:
                 # Make sure bot hasn't already commented
                 if comment.id not in commented_list:
@@ -207,8 +220,7 @@ def main():
                         text = text.split('\n')[0]
 
                     # Remove 'decisionbot' string, whitespace, and punctuation
-                    input_fight = text.replace('decisionbot', '')\
-                        .replace('decision bot', '').strip(string.punctuation + ' ')
+                    input_fight = remove_trigger_word(text).strip(string.punctuation + ' ')
 
                     # Replace nicknames in input
                     input_fight = replace_nicknames(input_fight, nickname_dict)
@@ -219,13 +231,13 @@ def main():
                     if fight_finder.DEBUG:
                         print('Sending reply to initial comment...')
                     if not fight_info:
-                        comment.reply(fail_text)
+                        comment.reply(FAIL_TEXT)
                         log_comment(comment_log_name, comment.id)
                     else:
                         count = 0
                         for fight in fight_info:
                             if fight[0] is None:
-                                comment.reply(fail_text)
+                                comment.reply(FAIL_TEXT)
                                 log_comment(comment_log_name, comment.id)
                                 break
                             else:
@@ -247,8 +259,8 @@ def main():
                     reddit.redditor(info.personal_username).message(
                         'DecisionBot triggered',
                         comment.body
-                        + '\nMobile: ' + permalink.replace('//', '/')
-                        + '\nDesktop: ' + permalink)
+                        + '\n\nMobile: \n\n' + permalink.replace('//', '/')
+                        + '\n\nDesktop: \n\n' + permalink)
 
             except Exception:
                 if fight_finder.DEBUG:
@@ -256,7 +268,7 @@ def main():
                 exc_info = sys.exc_info()
                 log_error(log_name, comment.body, exc_info)
                 try:
-                    comment.reply(fail_text)
+                    comment.reply(FAIL_TEXT)
                     log_comment(comment_log_name, comment.id)
                 except praw.exceptions.PRAWException:
                     exc_info = sys.exc_info()
