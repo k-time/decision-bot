@@ -9,13 +9,12 @@ import logging
 import fight_finder
 import config
 
-FAIL_TEXT = 'I couldn\'t find this fight! Check your spelling, ' \
-            'or maybe the fight didn\'t end in a decision.'
-TROUBLESHOOT_TEXT = ' [Troubleshooting](https://s3.amazonaws.com/decisionbot/error_message.txt)'
-DECISION_SPELLINGS = ['decision', 'decison', 'desicion', 'descision']
 # Set logging level to INFO for status output, WARNING for no output
 logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
 logger = logging.getLogger('DECISION_BOT')
+FAIL_TEXT = 'I couldn\'t find this fight! Check your spelling, or maybe the fight didn\'t end in a decision.'
+TROUBLESHOOT_TEXT = ' [Troubleshooting](https://s3.amazonaws.com/decisionbot/error_message.txt)'
+DECISION_SPELLINGS = ['decision', 'decison', 'desicion', 'descision']
 
 
 def build_comment_reply(score_tables, fight_result, media_scores, event_info):
@@ -26,6 +25,17 @@ def build_comment_reply(score_tables, fight_result, media_scores, event_info):
         if '**CARLOS CONDIT** defeats **NICK DIAZ**' in fight_result:
             comment = '**DIAZ 1 2 5**\n\nI mean...\n\n' + comment
 
+    # Adding scorecards
+    comment += build_scorecard_text(score_tables)
+    # Adding judges
+    comment += build_judge_text(score_tables) + '\n\n'
+    # Adding media scores
+    comment += build_media_scores_text(media_scores)
+
+    return comment
+
+
+def build_scorecard_text(score_tables):
     # Building the first and second rows
     row_1 = 'ROUND'
     row_2 = ':-:'
@@ -34,7 +44,7 @@ def build_comment_reply(score_tables, fight_result, media_scores, event_info):
         if i != len(score_tables)-1:
             row_1 += '|'
         row_2 += '|:-:|:-:|:-:'
-    comment += row_1 + '\n' + row_2 + '\n'
+    scorecard_text = row_1 + '\n' + row_2 + '\n'
 
     # Building the 'round' rows and 'total' row
     round_rows = [''] * (len(score_tables[0][1]) - 2)
@@ -57,16 +67,10 @@ def build_comment_reply(score_tables, fight_result, media_scores, event_info):
             total_row += '|'
 
     for row in round_rows:
-        comment += row + '\n'
-    comment += total_row + '\n'
+        scorecard_text += row + '\n'
+    scorecard_text += total_row + '\n'
 
-    # Adding judges
-    comment += build_judge_text(score_tables) + '\n\n'
-
-    # Adding media scores
-    comment += build_media_scores_text(media_scores)
-
-    return comment
+    return scorecard_text
 
 
 def build_judge_text(score_tables):
@@ -129,6 +133,7 @@ def remove_trigger_word(text):
     return text
 
 
+# Randomly pick a failure message
 def generate_fail_text():
     phrases = [
         'THOUGHT YOU HAD A FIGHT BOI!!',
@@ -141,6 +146,23 @@ def generate_fail_text():
         return random.choice(phrases) + TROUBLESHOOT_TEXT
     else:
         return 'I couldn\'t find this fight!' + TROUBLESHOOT_TEXT
+
+
+def get_commented_list(comment_log_name):
+    try:
+        with open(comment_log_name, 'r') as f:
+            commented_list = f.read().splitlines()
+        # If over 100 comment ids are saved, remove half
+        if len(commented_list) > 100:
+            with open(comment_log_name, 'w') as f:
+                f.write('\n'.join(commented_list[-50:]) + '\n')
+    except FileNotFoundError:
+        error_text = 'File \'' + comment_log_name + '\' not found!'
+        logger.critical(error_text)
+        log_error(config.log_name, error_text, sys.exc_info())
+        sys.exit(1)
+
+    return commented_list
 
 
 def log_message(log_name, comment_body, message):
@@ -174,13 +196,47 @@ def log_comment(comment_log_name, comment_id):
         print(comment_id)
 
 
+def send_reply(fight_info, comment):
+    # Retrieved fight info
+    if fight_info:
+        count = 0
+        for fight in fight_info:
+            if fight[0] is None:
+                reply_and_log(generate_fail_text(), comment)
+                break
+            else:
+                # Make sure the bot isn't commenting too fast
+                if count != 0:
+                    time.sleep(2)
+                    logger.info('Sending reply with next fight...')
+                reply_and_log(build_comment_reply(fight[0], fight[1], fight[2], fight[3]), comment)
+                count += 1
+    else:
+        reply_and_log(generate_fail_text(), comment)
+
+
+def reply_and_log(text, comment):
+    comment.reply(text)
+    log_comment(config.comment_log_name, comment.id)
+
+
+def notify_myself(reddit, comment):
+    # Permalink requires different formatting for desktop vs. mobile website.
+    permalink = 'www.reddit.com' + comment.permalink(fast=True)
+    reddit.redditor(config.personal_username).message(
+        'DecisionBot triggered',
+        comment.body
+        + '\n\nMobile: \n\n' + permalink.replace('//', '/')
+        + '\n\nDesktop: \n\n' + permalink)
+
+
 def tester():
     nickname_dict = create_nickname_dict(config.nickname_filename)
     print('Enter fight:')
     input_fight = input()
     input_fight = replace_nicknames(input_fight, nickname_dict)
     print('Searching...')
-    fight_info = fight_finder.get_score_cards_from_input(input_fight)
+    fight_info = fight_finder.get_fight_info_from_input(input_fight)
     if not fight_info:
         print(FAIL_TEXT)
     else:
@@ -205,27 +261,10 @@ def main():
             username=config.my_username,
             password=config.my_pw)
 
-    log_name = config.log_name
-    comment_log_name = config.comment_log_name
-
     # Open log of previous bot comments
-    try:
-        with open(comment_log_name, 'r') as f:
-            commented_list = f.read().splitlines()
-        # If over 100 comment ids are saved, remove half
-        if len(commented_list) > 100:
-            with open(comment_log_name, 'w') as f:
-                f.write('\n'.join(commented_list[-50:]) + '\n')
-    except FileNotFoundError:
-        error_text = 'File \'' + comment_log_name + '\' not found!'
-        print(error_text)
-        exc_info = sys.exc_info()
-        log_error(log_name, error_text, exc_info)
-        sys.exit(1)
-
+    commented_list = get_commented_list(config.comment_log_name)
     # Create the dictionary of nicknames to be replaced
     nickname_dict = create_nickname_dict(config.nickname_filename)
-
     # Monitoring incoming comment stream from subreddit
     subreddit = reddit.subreddit(config.target_subreddits)
 
@@ -242,62 +281,24 @@ def main():
 
                     # Remove 'decisionbot' string, whitespace, and punctuation
                     input_fight = remove_trigger_word(text).strip(string.punctuation + ' ')
-
                     # Replace nicknames in input
                     input_fight = replace_nicknames(input_fight, nickname_dict)
-
-                    # Retrieve the score cards
-                    fight_info = fight_finder.get_score_cards_from_input(input_fight)
+                    # Retrieve all the fight info
+                    fight_info = fight_finder.get_fight_info_from_input(input_fight)
 
                     logger.info('Sending reply to initial comment...')
-                    if not fight_info:
-                        comment.reply(generate_fail_text())
-                        log_comment(comment_log_name, comment.id)
-                    else:
-                        count = 0
-                        for fight in fight_info:
-                            if fight[0] is None:
-                                comment.reply(generate_fail_text())
-                                log_comment(comment_log_name, comment.id)
-                                break
-                            else:
-                                # Make sure the bot isn't commenting too fast
-                                if count != 0:
-                                    time.sleep(2)
-                                    logger.info('Sending reply with next fight...')
-                                count += 1
-                                comment.reply(build_comment_reply(fight[0], fight[1], fight[2], fight[3]))
-                                log_comment(comment_log_name, comment.id)
-
-                    logger.info('Success!')
-
-                    # Let me know that the bot has been triggered.
-                    # Permalink requires different formatting for desktop vs. mobile website.
-                    permalink = 'www.reddit.com' + comment.permalink(fast=True)
-                    reddit.redditor(config.personal_username).message(
-                        'DecisionBot triggered',
-                        comment.body
-                        + '\n\nMobile: \n\n' + permalink.replace('//', '/')
-                        + '\n\nDesktop: \n\n' + permalink)
+                    send_reply(fight_info, comment)
+                    logger.info('Success!\n')
+                    # Let me know that the bot has been triggered
+                    notify_myself(reddit, comment)
 
             except Exception:
                 logger.info('Error occurred.')
-                exc_info = sys.exc_info()
-                log_error(log_name, comment.body, exc_info)
+                log_error(config.log_name, comment.body, sys.exc_info())
                 try:
-                    comment.reply(FAIL_TEXT)
-                    log_comment(comment_log_name, comment.id)
+                    reply_and_log(FAIL_TEXT, comment)
                 except praw.exceptions.PRAWException:
-                    exc_info = sys.exc_info()
-                    log_error(log_name, comment.body, exc_info)
-                    try:
-                        if comment.author is not None:
-                            reddit.redditor(comment.author.name).message(
-                                'Sorry!', 'There was an error with DecisionBot- I will look into this issue ASAP.')
-                            log_comment(comment_log_name, comment.id)
-                    except praw.exceptions.PRAWException:
-                        exc_info = sys.exc_info()
-                        log_error(log_name, comment.body, exc_info)
+                    log_error(config.log_name, comment.body, sys.exc_info())
 
 
 if __name__ == '__main__':
