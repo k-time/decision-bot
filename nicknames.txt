@@ -10,7 +10,7 @@ jds:junior dos santos
 dhk:dong hyun kim
 mayhem:jason
 tank abbott:david abbott
-ops:ovince saint preux
+osp:ovince saint preux
 st preux:saint preux
 st. preux:saint preux
 minotauro:antonio rodrigo nogueira

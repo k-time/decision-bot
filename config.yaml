@@ -19,7 +19,7 @@ nickname_filename: "nicknames.txt"
 # Subreddits for bot to be active in
 target_subreddits: "mma+betsmma+bottesting"
 
-troubleshoot_text: " [Troubleshooting](https://s3.amazonaws.com/decisionbot/error_message.txt)"
+troubleshoot_text: " [Troubleshooting](https://s3.amazonaws.com/decision-bot/error_message.txt)"
 
 # People misspell decision a lot
 decision_spellings:

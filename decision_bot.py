@@ -127,17 +127,26 @@ def replace_nicknames(text, nickname_dict):
     return text
 
 
-def triggered(text):
+# Find the index of the trigger word. Returns -1 if not found
+def get_trigger_index(text):
     for word in cfg['decision_spellings']:
-        if text.startswith(word + 'bot') or text.startswith(word + ' bot'):
-            return True
-    return False
+        index = text.find(word + 'bot')
+        if index != -1:
+            return index
+        else:
+            return text.find(word + ' bot')
 
 
-def remove_trigger_word(text):
+# Reduce the input text to just the fight string
+def sanitize_input(text):
+    # Only take the first line of comment
+    if '\n' in text:
+        text = text.split('\n')[0]
+    # Remove trigger word
     for word in cfg['decision_spellings']:
         text = text.replace(word + 'bot', '').replace(word + ' bot', '')
-    return text
+
+    return text.strip(string.punctuation + ' ')
 
 
 # Randomly pick a failure message
@@ -299,17 +308,14 @@ def main():
 
     for comment in subreddit.stream.comments():
         text = comment.body.lower().strip()
+        index = get_trigger_index(text)
         # Found a match
-        if triggered(text):
+        if index != -1:
             try:
                 # Make sure bot hasn't already commented
                 if comment.id not in commented_list:
-                    # Only take the first line of comment
-                    if '\n' in text:
-                        text = text.split('\n')[0]
-
-                    # Remove 'decisionbot' string, whitespace, and punctuation
-                    input_fight = remove_trigger_word(text).strip(string.punctuation + ' ')
+                    # Sanitize the input to just get the fight string
+                    input_fight = sanitize_input(text[index:])
                     # Replace nicknames in input
                     input_fight = replace_nicknames(input_fight, nickname_dict)
                     # Retrieve all the fight info
