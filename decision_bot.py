@@ -10,7 +10,7 @@ import yaml
 import argparse
 import fight_finder as ff
 
-# Set logging level to INFO for status output, WARNING for no output
+# Set logging level to INFO for all output, CRITICAL for no output
 logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
 logger = logging.getLogger('DECISION_BOT')
 
@@ -116,7 +116,7 @@ def create_nickname_dict(nickname_db):
                 if len(names) == 2:
                     nickname_dict[names[0]] = names[1]
     except FileNotFoundError:
-        print('File \'' + nickname_db + '\' not found!')
+        logger.error('File \'' + nickname_db + '\' not found!')
 
     return nickname_dict
 
@@ -183,8 +183,8 @@ def log_message(comment_body, message):
             f.write(comment_body + '\n' + message + '\n')
             f.write('-------------\n')
     except FileNotFoundError:
-        print('File \'' + log + '\' not found!')
-        print(comment_body + '\n' + message)
+        logger.error('File \'' + log + '\' not found!')
+        logger.error(comment_body + '\n' + message)
 
 
 def log_error(text, exc_info):
@@ -194,8 +194,8 @@ def log_error(text, exc_info):
             traceback.print_exception(exc_info[0], exc_info[1], exc_info[2], file=f)
             f.write('-------------\n')
     except FileNotFoundError:
-        print('File \'' + log + '\' not found!')
-        print(text + '\n')
+        logger.error('File \'' + log + '\' not found!')
+        logger.error(text + '\n')
         traceback.print_exception(exc_info[0], exc_info[1], exc_info[2], file=sys.stdout)
 
 
@@ -204,8 +204,8 @@ def log_comment(comment_id):
         with open(comment_log, 'a') as f:
             f.write(comment_id + '\n')
     except FileNotFoundError:
-        print('File \'' + comment_log + '\' not found!')
-        print(comment_id)
+        logger.error('File \'' + comment_log + '\' not found!')
+        logger.error('Comment ID being logged: ' + comment_id)
 
 
 def send_reply(fight_info, comment, input_fight):
@@ -322,7 +322,7 @@ def main():
                     notify_myself(reddit, comment)
 
             except Exception:
-                logger.info('Error occurred.')
+                logger.error('Error occurred.')
                 log_error(comment.body, sys.exc_info())
                 try:
                     reply_and_log('I couldn\'t find this fight!' + troubleshoot_text, comment)
