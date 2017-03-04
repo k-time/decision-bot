@@ -9,7 +9,7 @@ from datetime import datetime
 import logging
 import yaml
 
-# Set logging level to INFO for status output, WARNING for no output
+# Set logging level to INFO for status output, CRITICAL for no output
 logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
 logger = logging.getLogger('FIGHT_FINDER')
 
@@ -55,13 +55,14 @@ def _get_fight_url_list(fighter):
         url = page.geturl()
     # Use requests.get() as backup if urlopen() fails
     except (urllib.error.HTTPError, UnicodeEncodeError):
+        logger.info('urlopen() failed, trying requests.get()...')
         try:
             page = requests.get(query_url)
             url = page.url
             # Currently there is a search functionality issue with mmadecisions.com
             url = url.replace('mmadecisions/fighter', 'fighter')
         except requests.HTTPError:
-            logger.info('Could not open url ' + query_url)
+            logger.error('Could not open url ' + query_url)
             return None
 
     # If page redirects to a fighter url
@@ -251,6 +252,7 @@ def _get_fight_result(soup, url):
         fight_result = '[**' + first_fighter.upper() + '** ' + action + ' **' + \
                        second_fighter.upper() + '** (*' + decision.lower() + '*)](' + url + ')'
     except AttributeError:
+        logger.warning('Could not retrieve fight result.')
         return None
 
     return fight_result
@@ -272,6 +274,7 @@ def _get_event_info(soup):
         else:
             return None
     except AttributeError:
+        logger.warning('Could not retrieve event info.')
         return None
 
     return event_info
@@ -289,6 +292,7 @@ def _get_media_scores(soup):
                 fighter = row.find_all('td', attrs={'align': 'center'})[-1].getText()
                 media_scores.append((score, fighter))
     except AttributeError:
+        logger.warning('Could not retrieve media scores.')
         return None
 
     return media_scores
@@ -300,6 +304,7 @@ def _get_full_date(num_date):
         d = datetime.strptime(num_date, '%Y-%m-%d')
         return d.strftime('%B %d, %Y')
     except ValueError:
+        logger.warning('Could not convert date.')
         return num_date
 
 
