@@ -1,3 +1,4 @@
+import sys
 from bs4 import BeautifulSoup
 from unidecode import unidecode
 from urllib.request import urlopen
@@ -6,16 +7,16 @@ import requests
 from pprint import pprint
 from datetime import datetime
 import logging
-import sys
+import yaml
 
 # Set logging level to INFO for status output, WARNING for no output
 logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
 logger = logging.getLogger('FIGHT_FINDER')
-VERSUS_LIST = [' v ', ' v. ', ' vs ', ' vs. ', ' versus ', ' versus. ']
-HOME_URL = 'http://mmadecisions.com/'
-SEARCH_URL = 'http://mmadecisions.com/search.jsp?s='
-FIGHTER_SUB_URL = 'mmadecisions.com/fighter/'
-SEARCH_SUB_URL = 'mmadecisions.com/search'
+
+# Load configs
+with open('config.yaml', 'r') as cfg_file:
+    cfg = yaml.load(cfg_file)
+home_url = cfg['home_url']
 
 
 def get_fight_info(fighter_1, fighter_2):
@@ -31,7 +32,6 @@ def _get_fight_urls(fighter_1, fighter_2):
     fight_list_1 = _get_fight_url_list(unidecode(fighter_1).replace(' ', '+'))
     fight_list_2 = _get_fight_url_list(unidecode(fighter_2).replace(' ', '+'))
     return _find_fight_url_matches(fight_list_1, fight_list_2)
-    # Could possibly do other methods later
 
 
 def _find_fight_url_matches(fight_list_1, fight_list_2):
@@ -49,12 +49,11 @@ def _find_fight_url_matches(fight_list_1, fight_list_2):
 
 def _get_fight_url_list(fighter):
     # Entering fighter as query on initial search page
-    query_url = SEARCH_URL + fighter
+    query_url = cfg['search_url'] + fighter
     try:
         page = urlopen(query_url)
         url = page.geturl()
-    # Issue with mmadecisions.com: ascii url redirects to non-ascii url for names with accented characters
-    # Solution: use requests.get() instead of urlopen()
+    # Use requests.get() as backup if urlopen() fails
     except (urllib.error.HTTPError, UnicodeEncodeError):
         try:
             page = requests.get(query_url)
@@ -66,11 +65,11 @@ def _get_fight_url_list(fighter):
             return None
 
     # If page redirects to a fighter url
-    if FIGHTER_SUB_URL in url:
+    if cfg['fighter_sub_url'] in url:
         logger.info('I\'m on a fighter page. Retrieving my fights...')
         return _get_fights_from_fighter_page(url)
     # If page redirects to a search url
-    elif SEARCH_SUB_URL in url:
+    elif cfg['search_sub_url'] in url:
         logger.info('I\'m on a search page. Retrieving all fights, if any...')
         return _get_fights_from_search_page(url)
     # If page redirects to any other url
@@ -165,7 +164,7 @@ def _get_fight_info_from_fight_page(fight_urls):
     fight_info = []
 
     for url in fight_urls:
-        if not url or HOME_URL not in url:
+        if not url or home_url not in url:
             return None
 
         # Opening the page
@@ -175,7 +174,7 @@ def _get_fight_info_from_fight_page(fight_urls):
         score_tables = _get_score_tables(soup)
         if not score_tables:
             return None
-        fight_result = _get_fight_result(soup)
+        fight_result = _get_fight_result(soup, url)
         event_info = _get_event_info(soup)
         media_scores = _get_media_scores(soup)
 
@@ -239,7 +238,7 @@ def _get_score_tables(soup):
 
 
 # Getting the fight result (ex. 'A defeats B (split decision)') from the fight page
-def _get_fight_result(soup):
+def _get_fight_result(soup, url):
     try:
         top_section = soup.find('td', attrs={'class': 'decision-top', 'align': 'right'})
         first_fighter = top_section.a.getText().replace('&nbsp;', ' ').strip()
@@ -249,8 +248,8 @@ def _get_fight_result(soup):
         second_fighter = bottom_section.a.getText().replace('&nbsp;', ' ').strip()
         decision_section = soup.find('th', attrs={'class': 'event2', 'colspan': '2'})
         decision = decision_section.i.getText().strip()
-        fight_result = '**' + first_fighter.upper() + '** ' + action + ' **' + \
-                       second_fighter.upper() + '** (*' + decision.lower() + '*)'
+        fight_result = '[**' + first_fighter.upper() + '** ' + action + ' **' + \
+                       second_fighter.upper() + '** (*' + decision.lower() + '*)](' + url + ')'
     except AttributeError:
         return None
 
@@ -313,11 +312,11 @@ def _sanitize_url(url):
         url_sections = url.split('/')
         if len(url_sections) >= 2:
             url = 'decision/' + url_sections[1] + '/fight'
-        url = HOME_URL + url
+        url = home_url + url
 
     # Add home_url to the front of the url if needed
     elif url.startswith('fighter/'):
-        url = HOME_URL + url
+        url = home_url + url
 
     # Remove the jsessionid from the url
     index = url.find('jsessionid')
@@ -352,15 +351,15 @@ def _get_fight_num(input_fight):
 
 
 # Searches for variations of "versus" in the input
-def _get_fighters_from_input(input_fight):
+def get_fighters_from_input(input_fight):
     input_fight = input_fight.strip()
     if input_fight == '':
         return None, None
 
-    # TODO: How to implement fight numbers?
+    # TODO: Implement fight numbers
     fight_num, input_fight = _get_fight_num(input_fight)
 
-    for word in VERSUS_LIST:
+    for word in cfg['versus_list']:
         index = input_fight.find(word)
         if index != -1:
             fighter_1 = input_fight[:index].strip()
@@ -376,7 +375,7 @@ def _guess_fighters_from_input(input_fight):
     if input_fight == '':
         return None, None
 
-    # TODO: How to implement fight numbers?
+    # TODO: Implement fight numbers
     fight_num, input_fight = _get_fight_num(input_fight)
 
     word_list = input_fight.split()
@@ -405,7 +404,7 @@ def _guess_fighters_from_input(input_fight):
 
 def get_fight_info_from_input(input_fight):
     # Try getting fighter names by looking for variations of "vs"
-    fighter_1, fighter_2 = _get_fighters_from_input(input_fight)
+    fighter_1, fighter_2 = get_fighters_from_input(input_fight)
     fight_info = None
 
     # Input is blank
@@ -421,7 +420,7 @@ def get_fight_info_from_input(input_fight):
         fight_info = get_fight_info(fighter_1, fighter_2)
     # Variations of "versus" were not found, so try to find the fighter names
     else:
-        logger.info('\nNo \'versus\' found in input, so guessing fighters...\n')
+        logger.info('No \'versus\' found in input, so guessing fighters...\n')
         name_combos = _guess_fighters_from_input(input_fight)
         for combo in name_combos:
             logger.info('Trying fighter 1: ' + combo[0])

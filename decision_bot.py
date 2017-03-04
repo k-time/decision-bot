@@ -6,24 +6,31 @@ import string
 import time
 import random
 import logging
-import fight_finder
-import config
+import yaml
+import argparse
+import fight_finder as ff
 
 # Set logging level to INFO for status output, WARNING for no output
 logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
 logger = logging.getLogger('DECISION_BOT')
-FAIL_TEXT = 'I couldn\'t find this fight! Check your spelling, or maybe the fight didn\'t end in a decision.'
-TROUBLESHOOT_TEXT = ' [Troubleshooting](https://s3.amazonaws.com/decisionbot/error_message.txt)'
-DECISION_SPELLINGS = ['decision', 'decison', 'desicion', 'descision']
+
+# Load configs
+with open('config.yaml', 'r') as cfg_file:
+    cfg = yaml.load(cfg_file)
+log = cfg['log_name']
+comment_log = cfg['comment_log_name']
+troubleshoot_text = cfg['troubleshoot_text']
 
 
 def build_comment_reply(score_tables, fight_result, media_scores, event_info):
     comment = fight_result + '\n\n'
     if event_info is not None:
         comment += event_info + '\n\n'
-        # Easter egg joke
-        if '**CARLOS CONDIT** defeats **NICK DIAZ**' in fight_result:
-            comment = '**DIAZ 1 2 5**\n\nI mean...\n\n' + comment
+        # Easter egg jokes. Note: these strings contain non-breaking space characters ('\xa0')
+        for combo in cfg['easter_eggs']:
+            if combo[0] in fight_result:
+                comment = combo[1] + comment
+                break
 
     # Adding scorecards
     comment += build_scorecard_text(score_tables)
@@ -121,88 +128,93 @@ def replace_nicknames(text, nickname_dict):
 
 
 def triggered(text):
-    for word in DECISION_SPELLINGS:
+    for word in cfg['decision_spellings']:
         if text.startswith(word + 'bot') or text.startswith(word + ' bot'):
             return True
     return False
 
 
 def remove_trigger_word(text):
-    for word in DECISION_SPELLINGS:
+    for word in cfg['decision_spellings']:
         text = text.replace(word + 'bot', '').replace(word + ' bot', '')
     return text
 
 
 # Randomly pick a failure message
-def generate_fail_text():
-    phrases = [
-        'THOUGHT YOU HAD A FIGHT BOI!!',
-        'I am not impressed by your search query.',
-        'Sorry, my precision was not very precise.',
-        'Who da fook are these guys?'  # Try again buddeh, Try again ya goof
-    ]
+def generate_fail_text(input_fight, comment_author):
+    phrases = cfg['fail_phrases']
+    phrase = random.choice(phrases) + troubleshoot_text
+    if phrase.startswith('was never'):
+        phrase = 'u/' + comment_author + ' ' + phrase
     num = random.random()
-    if num < .9:
-        return random.choice(phrases) + TROUBLESHOOT_TEXT
+    if num < .5:  # Adjust this number to adjust the type of failure phrases
+        return phrase
     else:
-        return 'I couldn\'t find this fight!' + TROUBLESHOOT_TEXT
+        fighter_1, fighter_2 = ff.get_fighters_from_input(input_fight)
+        if fighter_1 is None:
+            return phrase
+        else:
+            coin_flip = random.randint(0, 1)
+            fighter = fighter_1 if coin_flip == 0 else fighter_2
+            return 'I couldn\'t find this fight! Gonna guess... ' \
+                   + string.capwords(fighter) + generate_victory_method() + troubleshoot_text
 
 
-def get_commented_list(comment_log_name):
+def get_commented_list():
     try:
-        with open(comment_log_name, 'r') as f:
+        with open(comment_log, 'r') as f:
             commented_list = f.read().splitlines()
         # If over 100 comment ids are saved, remove half
         if len(commented_list) > 100:
-            with open(comment_log_name, 'w') as f:
+            with open(comment_log, 'w') as f:
                 f.write('\n'.join(commented_list[-50:]) + '\n')
     except FileNotFoundError:
-        error_text = 'File \'' + comment_log_name + '\' not found!'
+        error_text = 'File \'' + comment_log + '\' not found!'
         logger.critical(error_text)
-        log_error(config.log_name, error_text, sys.exc_info())
+        log_error(error_text, sys.exc_info())
         sys.exit(1)
 
     return commented_list
 
 
-def log_message(log_name, comment_body, message):
+def log_message(comment_body, message):
     try:
-        with open(log_name, 'a') as f:
+        with open(log, 'a') as f:
             f.write(comment_body + '\n' + message + '\n')
             f.write('-------------\n')
     except FileNotFoundError:
-        print('File \'' + log_name + '\' not found!')
+        print('File \'' + log + '\' not found!')
         print(comment_body + '\n' + message)
 
 
-def log_error(log_name, comment_body, exc_info):
+def log_error(text, exc_info):
     try:
-        with open(log_name, 'a') as f:
-            f.write(comment_body + '\n')
+        with open(log, 'a') as f:
+            f.write(text + '\n')
             traceback.print_exception(exc_info[0], exc_info[1], exc_info[2], file=f)
             f.write('-------------\n')
     except FileNotFoundError:
-        print('File \'' + log_name + '\' not found!')
-        print(comment_body + '\n')
+        print('File \'' + log + '\' not found!')
+        print(text + '\n')
         traceback.print_exception(exc_info[0], exc_info[1], exc_info[2], file=sys.stdout)
 
 
-def log_comment(comment_log_name, comment_id):
+def log_comment(comment_id):
     try:
-        with open(comment_log_name, 'a') as f:
+        with open(comment_log, 'a') as f:
             f.write(comment_id + '\n')
     except FileNotFoundError:
-        print('File \'' + comment_log_name + '\' not found!')
+        print('File \'' + comment_log + '\' not found!')
         print(comment_id)
 
 
-def send_reply(fight_info, comment):
+def send_reply(fight_info, comment, input_fight):
     # Retrieved fight info
     if fight_info:
         count = 0
         for fight in fight_info:
             if fight[0] is None:
-                reply_and_log(generate_fail_text(), comment)
+                reply_and_log(generate_fail_text(input_fight, comment.author.name), comment)
                 break
             else:
                 # Make sure the bot isn't commenting too fast
@@ -211,62 +223,79 @@ def send_reply(fight_info, comment):
                     logger.info('Sending reply with next fight...')
                 reply_and_log(build_comment_reply(fight[0], fight[1], fight[2], fight[3]), comment)
                 count += 1
+    # Easter egg jokes
+    elif 'dana' in input_fight:
+        reply_and_log('Dana defeats Goof' + generate_victory_method(), comment)
+    elif 'usada' in input_fight:
+        reply_and_log('USADA' + generate_victory_method(), comment)
     else:
-        reply_and_log(generate_fail_text(), comment)
+        reply_and_log(generate_fail_text(input_fight, comment.author.name), comment)
 
 
 def reply_and_log(text, comment):
     comment.reply(text)
-    log_comment(config.comment_log_name, comment.id)
+    log_comment(comment.id)
+
+
+def generate_victory_method():
+    methods = cfg['victory_methods']
+    return ' by ' + random.choice(methods) + '.'
 
 
 def notify_myself(reddit, comment):
-    # Permalink requires different formatting for desktop vs. mobile website.
+    # Permalink requires different formatting for desktop vs. mobile website
     permalink = 'www.reddit.com' + comment.permalink(fast=True)
-    reddit.redditor(config.personal_username).message(
+    reddit.redditor(cfg['personal_username']).message(
         'DecisionBot triggered',
         comment.body
         + '\n\nMobile: \n\n' + permalink.replace('//', '/')
         + '\n\nDesktop: \n\n' + permalink)
 
 
+# For testing locally with command line
 def tester():
-    nickname_dict = create_nickname_dict(config.nickname_filename)
+    nickname_dict = create_nickname_dict(cfg['nickname_filename'])
+    fail_text = 'I couldn\'t find this fight! Check your spelling, or maybe the fight didn\'t end in a decision.'
+
     print('Enter fight:')
     input_fight = input()
     input_fight = replace_nicknames(input_fight, nickname_dict)
     print('Searching...')
-    fight_info = fight_finder.get_fight_info_from_input(input_fight)
+    fight_info = ff.get_fight_info_from_input(input_fight)
     if not fight_info:
-        print(FAIL_TEXT)
+        print(fail_text)
     else:
         for fight in fight_info:
             if fight[0] is None:
-                print(FAIL_TEXT)
+                print(fail_text)
             else:
                 print(build_comment_reply(fight[0], fight[1], fight[2], fight[3]))
 
 
 def main():
-    # Check for debug flag
-    if '-d' in sys.argv:
+    # Command-line options parser
+    parser = argparse.ArgumentParser(description='Reddit bot that searches and posts MMA scorecards.')
+    parser.add_argument('-d', '--debug', action='store_true', dest='debug', help='Print logging info to stdout.')
+    args = parser.parse_args()
+
+    if args.debug:
         logger.setLevel(logging.INFO)
-        fight_finder.logger.setLevel(logging.INFO)
+        ff.logger.setLevel(logging.INFO)
 
     # Authentication
     reddit = praw.Reddit(
-            client_id=config.my_client_id,
-            client_secret=config.my_client_secret,
-            user_agent=config.my_user_agent,
-            username=config.my_username,
-            password=config.my_pw)
+            client_id=cfg['client_id'],
+            client_secret=cfg['client_secret'],
+            user_agent=cfg['user_agent'],
+            username=cfg['username'],
+            password=cfg['pw'])
 
     # Open log of previous bot comments
-    commented_list = get_commented_list(config.comment_log_name)
+    commented_list = get_commented_list()
     # Create the dictionary of nicknames to be replaced
-    nickname_dict = create_nickname_dict(config.nickname_filename)
+    nickname_dict = create_nickname_dict(cfg['nickname_filename'])
     # Monitoring incoming comment stream from subreddit
-    subreddit = reddit.subreddit(config.target_subreddits)
+    subreddit = reddit.subreddit(cfg['target_subreddits'])
 
     for comment in subreddit.stream.comments():
         text = comment.body.lower().strip()
@@ -284,21 +313,21 @@ def main():
                     # Replace nicknames in input
                     input_fight = replace_nicknames(input_fight, nickname_dict)
                     # Retrieve all the fight info
-                    fight_info = fight_finder.get_fight_info_from_input(input_fight)
+                    fight_info = ff.get_fight_info_from_input(input_fight)
 
                     logger.info('Sending reply to initial comment...')
-                    send_reply(fight_info, comment)
+                    send_reply(fight_info, comment, input_fight)
                     logger.info('Success!\n')
                     # Let me know that the bot has been triggered
                     notify_myself(reddit, comment)
 
             except Exception:
                 logger.info('Error occurred.')
-                log_error(config.log_name, comment.body, sys.exc_info())
+                log_error(comment.body, sys.exc_info())
                 try:
-                    reply_and_log(FAIL_TEXT, comment)
+                    reply_and_log('I couldn\'t find this fight!' + troubleshoot_text, comment)
                 except praw.exceptions.PRAWException:
-                    log_error(config.log_name, comment.body, sys.exc_info())
+                    log_error(comment.body, sys.exc_info())
 
 
 if __name__ == '__main__':

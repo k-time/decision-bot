@@ -1,0 +1,72 @@
+############### decision_bot configs ###############
+
+# Information about authentication:
+# http://praw.readthedocs.io/en/latest/getting_started/authentication.html#oauth
+client_id: "enter your client ID here"
+client_secret: "enter your client secret here"
+user_agent: "enter your user agent here"
+username: "enter your username here"
+pw: "enter your password here"
+
+# Optional: this account receives notifications when DecisionBot is triggered. Set as null if not needed
+personal_username: "enter your personal username here"
+
+# Log files and nickname db file
+log_name: "log.txt"
+comment_log_name: "commented.txt"
+nickname_filename: "nicknames.txt"
+
+# Subreddits for bot to be active in
+target_subreddits: "mma+betsmma+bottesting"
+
+troubleshoot_text: " [Troubleshooting](https://s3.amazonaws.com/decisionbot/error_message.txt)"
+
+# People misspell decision a lot
+decision_spellings:
+  - "decision"
+  - "decison"
+  - "desicion"
+  - "descision"
+
+fail_phrases:
+  - "THOUGHT YOU HAD A FIGHT BOI!!"
+  - "I am not impressed by your search query."
+  - "Sorry, my precision was not very precise."
+  - "GSP is huge and your search query was bad."
+  - "No luck, try again buddeh!"
+  - "was never my friend. Just kidding. I couldn't find your fight."
+
+victory_methods:
+  - "knockout"
+  - "1st round KO"
+  - "TKO"
+  - "1st round TKO"
+  - "TKO in the 5th"
+  - "1st round stoppage"
+  - "split decision"
+  - "corner stoppage"
+  - "doctor stoppage"
+  - "DQ (illegal 12-6 elbows)"
+
+easter_eggs:
+  -
+    - "**CARLOS CONDIT** defeats **NICK DIAZ**"
+    - "**DIAZ 1 2 5**\n\nI mean...\n\n"
+  -
+    - "**TYRON WOODLEY** drew with **STEPHEN THOMPSON**"
+    - "**TYRON WOODLEY** defeats **STEPHEN THOMP...**\n\nWe have a correction!\n\n"
+
+############### fight_finder configs ###############
+
+home_url: "http://mmadecisions.com/"
+search_url: "http://mmadecisions.com/search.jsp?s="
+fighter_sub_url: "mmadecisions.com/fighter/"
+search_sub_url: "mmadecisions.com/search"
+
+versus_list:
+  - " v "
+  - " v. "
+  - " vs "
+  - " vs. "
+  - " versus "
+  - " versus. "
