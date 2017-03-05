@@ -201,7 +201,6 @@ def handle_rematch(fight_info, fight_num, rematch_list):
                     return [fight_info[fight_num - 1]]
                 elif real_fight_num == fight_num and len(fight_info) >= website_fight_num:
                     return [fight_info[website_fight_num - 1]]
-                break
 
     return fight_info
 
