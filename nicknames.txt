@@ -34,3 +34,5 @@ tj :t.j.
 randemie:randamie
 gdr:germaine de randamie
 benevidez:benavidez
+vannata:vannatta
+wonderboy:stephen

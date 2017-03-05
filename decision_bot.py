@@ -109,7 +109,7 @@ def build_media_scores_text(media_scores):
 def create_nickname_dict(nickname_db):
     nickname_dict = {}
     try:
-        with open(nickname_db) as f:
+        with open(nickname_db, 'r') as f:
             for line in f:
                 line = line.rstrip('\n')
                 names = line.split(':')
@@ -154,12 +154,12 @@ def generate_fail_text(input_fight, comment_author):
     phrases = cfg['fail_phrases']
     phrase = random.choice(phrases) + troubleshoot_text
     if phrase.startswith('was never'):
-        phrase = 'u/' + comment_author + ' ' + phrase
+        phrase = comment_author + ' ' + phrase
     num = random.random()
     if num < .5:  # Adjust this number to adjust the type of failure phrases
         return phrase
     else:
-        fighter_1, fighter_2 = ff.get_fighters_from_input(input_fight)
+        fighter_1, fighter_2, fight_num = ff.get_fighters_from_input(input_fight)
         if fighter_1 is None:
             return phrase
         else:
@@ -167,6 +167,43 @@ def generate_fail_text(input_fight, comment_author):
             fighter = fighter_1 if coin_flip == 0 else fighter_2
             return 'I couldn\'t find this fight! Gonna guess... ' \
                    + string.capwords(fighter) + generate_victory_method() + troubleshoot_text
+
+
+# The rematch_db is needed because mmadecisions.com does not have fights that end in
+# finishes, which throws off the fight numbering. Each entry in rematch_db looks like:
+# real fight #|fight # on mmadecisions.com (from bottom up)|fighter 1|fighter 2
+# 0|0|... means fight decisions are in order
+def create_rematch_list(rematch_db):
+    rematch_list = []
+    try:
+        with open(rematch_db, 'r') as f:
+            for line in f:
+                line = line.rstrip('\n').lower()
+                cells = line.split('|')
+                rematch_list.append(tuple(cells))
+    except FileNotFoundError:
+        logger.error('File \'' + rematch_db + '\' not found!')
+
+    return rematch_list
+
+
+def handle_rematch(fight_info, fight_num, rematch_list):
+    if fight_num > 0 and len(fight_info) > 0:
+        # Reverse to get fights in chronological order
+        fight_info.reverse()
+        fight_result = fight_info[0][1].lower().replace(u'\xa0', u' ')
+        for info in rematch_list:
+            (real_fight_num, website_fight_num, fighter_1, fighter_2) = info
+            real_fight_num = int(real_fight_num)
+            website_fight_num = int(website_fight_num)
+            if fighter_1 in fight_result and fighter_2 in fight_result:
+                if real_fight_num == 0 and len(fight_info) >= fight_num:
+                    return [fight_info[fight_num - 1]]
+                elif real_fight_num == fight_num and len(fight_info) >= website_fight_num:
+                    return [fight_info[website_fight_num - 1]]
+                break
+
+    return fight_info
 
 
 def get_commented_list():
@@ -263,14 +300,16 @@ def notify_myself(reddit, comment):
 
 # For testing locally with command line
 def tester():
-    nickname_dict = create_nickname_dict(cfg['nickname_filename'])
+    nickname_dict = create_nickname_dict(cfg['nickname_db'])
+    rematch_list = create_rematch_list(cfg['rematch_db'])
     fail_text = 'I couldn\'t find this fight! Check your spelling, or maybe the fight didn\'t end in a decision.'
 
     print('Enter fight:')
     input_fight = input()
     input_fight = replace_nicknames(input_fight, nickname_dict)
     print('Searching...')
-    fight_info = ff.get_fight_info_from_input(input_fight)
+    fight_info, fight_num = ff.get_fight_info_from_input(input_fight)
+    fight_info = handle_rematch(fight_info, fight_num, rematch_list)
     if not fight_info:
         print(fail_text)
     else:
@@ -302,7 +341,9 @@ def main():
     # Open log of previous bot comments
     commented_list = get_commented_list()
     # Create the dictionary of nicknames to be replaced
-    nickname_dict = create_nickname_dict(cfg['nickname_filename'])
+    nickname_dict = create_nickname_dict(cfg['nickname_db'])
+    # Create the rematch list to narrow down searches
+    rematch_list = create_rematch_list(cfg['rematch_db'])
     # Monitoring incoming comment stream from subreddit
     subreddit = reddit.subreddit(cfg['target_subreddits'])
 
@@ -319,8 +360,9 @@ def main():
                     # Replace nicknames in input
                     input_fight = replace_nicknames(input_fight, nickname_dict)
                     # Retrieve all the fight info
-                    fight_info = ff.get_fight_info_from_input(input_fight)
-
+                    fight_info, fight_num = ff.get_fight_info_from_input(input_fight)
+                    # Handle if user entered a rematch number
+                    fight_info = handle_rematch(fight_info, fight_num, rematch_list)
                     logger.info('Sending reply to initial comment...')
                     send_reply(fight_info, comment, input_fight)
                     logger.info('Success!\n')

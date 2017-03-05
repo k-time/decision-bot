@@ -249,7 +249,7 @@ def _get_fight_result(soup, url):
         second_fighter = bottom_section.a.getText().replace('&nbsp;', ' ').strip()
         decision_section = soup.find('th', attrs={'class': 'event2', 'colspan': '2'})
         decision = decision_section.i.getText().strip()
-        fight_result = '[**' + first_fighter.upper() + '** ' + action + ' **' + \
+        fight_result = '[**' + first_fighter.upper() + ' ' + action + ' ' + \
                        second_fighter.upper() + '** (*' + decision.lower() + '*)](' + url + ')'
     except AttributeError:
         logger.warning('Could not retrieve fight result.')
@@ -337,7 +337,7 @@ def _sanitize_url(url):
 # because mmadecisions.com does not record the fight number, and fights
 # that do not end in a decision are not included on the website.
 def _get_fight_num(input_fight):
-    # Remove roman numerals
+    # Convert roman numerals to regular digits
     roman_numerals = ('i', 'ii', 'iii')
     for num in roman_numerals:
         if input_fight.endswith(' ' + num):
@@ -345,23 +345,22 @@ def _get_fight_num(input_fight):
             new_input_fight = input_fight[:-(len(num)+1)]
             return fight_num, new_input_fight
 
-    # Or remove digits
+    # Handle regular digits
     last_char = input_fight[-1]
     if last_char.isdigit():
         fight_num = int(last_char)
         new_input_fight = input_fight[:-1].strip()
         return fight_num, new_input_fight
 
-    return 1, input_fight
+    return -1, input_fight
 
 
 # Searches for variations of "versus" in the input
 def get_fighters_from_input(input_fight):
     input_fight = input_fight.strip()
     if input_fight == '':
-        return None, None
+        return None, None, -1
 
-    # TODO: Implement fight numbers
     fight_num, input_fight = _get_fight_num(input_fight)
 
     for word in cfg['versus_list']:
@@ -369,16 +368,16 @@ def get_fighters_from_input(input_fight):
         if index != -1:
             fighter_1 = input_fight[:index].strip()
             fighter_2 = input_fight[index + len(word):].strip()
-            return fighter_1, fighter_2
+            return fighter_1, fighter_2, fight_num
 
-    return None, None
+    return None, None, -1
 
 
 # Used when variations of "versus" are not found in the input
 def _guess_fighters_from_input(input_fight):
     input_fight = input_fight.strip()
     if input_fight == '':
-        return None, None
+        return None, -1
 
     # TODO: Implement fight numbers
     fight_num, input_fight = _get_fight_num(input_fight)
@@ -388,7 +387,7 @@ def _guess_fighters_from_input(input_fight):
     name_combos = []
 
     if word_count < 2 or word_count > 6:
-        return []
+        return [], -1
     else:
         # For just even counts
         if word_count % 2 == 0:
@@ -404,12 +403,12 @@ def _guess_fighters_from_input(input_fight):
             fighter_2 = ' '.join(word_list[word_count-i:])
             name_combos.append((fighter_1, fighter_2))
 
-    return name_combos
+    return name_combos, fight_num
 
 
 def get_fight_info_from_input(input_fight):
     # Try getting fighter names by looking for variations of "vs"
-    fighter_1, fighter_2 = get_fighters_from_input(input_fight)
+    fighter_1, fighter_2, fight_num = get_fighters_from_input(input_fight)
     fight_info = None
 
     # Input is blank
@@ -426,7 +425,7 @@ def get_fight_info_from_input(input_fight):
     # Variations of "versus" were not found, so try to find the fighter names
     else:
         logger.info('No \'versus\' found in input, so guessing fighters...\n')
-        name_combos = _guess_fighters_from_input(input_fight)
+        name_combos, fight_num = _guess_fighters_from_input(input_fight)
         for combo in name_combos:
             logger.info('Trying fighter 1: ' + combo[0])
             logger.info('Trying fighter 2: ' + combo[1] + '\n')
@@ -443,14 +442,14 @@ def get_fight_info_from_input(input_fight):
     else:
         logger.info('Fight found!')
 
-    return fight_info
+    return fight_info, fight_num
 
 
 def main():
     print('Enter fight:')
     input_fight = input()
     print('Searching...')
-    fight_info = get_fight_info_from_input(input_fight)
+    fight_info, fight_num = get_fight_info_from_input(input_fight)
 
     error_msg = 'Couldn\'t find this fight! Check your spelling, or maybe this fight didn\'t end in a decision.'
 

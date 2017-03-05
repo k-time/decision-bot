@@ -14,7 +14,8 @@ personal_username: "enter your personal username here"
 # Log files and nickname db file
 log_name: "log.txt"
 comment_log_name: "commented.txt"
-nickname_filename: "nicknames.txt"
+nickname_db: "nicknames.txt"
+rematch_db: "rematches.txt"
 
 # Subreddits for bot to be active in
 target_subreddits: "mma+betsmma+bottesting"
