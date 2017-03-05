@@ -18,7 +18,7 @@ nickname_db: "nicknames.txt"
 rematch_db: "rematches.txt"
 
 # Subreddits for bot to be active in
-target_subreddits: "mma+bottesting"
+target_subreddits: "mma+betsmma+bottesting"
 
 troubleshoot_text: " [Troubleshooting](https://s3.amazonaws.com/decision-bot/error_message.txt)"
 
@@ -45,6 +45,7 @@ victory_methods:
   - "1st round TKO"
   - "TKO in the 5th"
   - "1st round stoppage"
+  - "split decision"
   - "corner stoppage"
   - "doctor stoppage"
   - "DQ (illegal 12-6 elbows)"
