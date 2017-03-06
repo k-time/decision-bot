@@ -1,0 +1,7 @@
+*.sh
+commented.txt
+error_message.txt
+log.txt
+Newkeypair.pem
+.idea/
+__pycache__/
