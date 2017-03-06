@@ -3,5 +3,6 @@ commented.txt
 error_message.txt
 log.txt
 Newkeypair.pem
+*.out
 .idea/
 __pycache__/
