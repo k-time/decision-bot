@@ -8,6 +8,7 @@ import random
 import logging
 import yaml
 import argparse
+from datetime import datetime
 import fight_finder as ff
 
 # Set logging level to INFO for all output, CRITICAL for no output
@@ -346,35 +347,44 @@ def main():
     # Monitoring incoming comment stream from subreddit
     subreddit = reddit.subreddit(cfg['target_subreddits'])
 
-    for comment in subreddit.stream.comments():
-        text = comment.body.lower().strip()
-        index = get_trigger_index(text)
-        # Found a match
-        if index != -1:
-            try:
-                # Make sure bot hasn't already commented
-                if comment.id not in commented_list:
-                    # Sanitize the input to just get the fight string
-                    input_fight = sanitize_input(text[index:])
-                    # Replace nicknames in input
-                    input_fight = replace_nicknames(input_fight, nickname_dict)
-                    # Retrieve all the fight info
-                    fight_info, fight_num = ff.get_fight_info_from_input(input_fight)
-                    # Handle if user entered a rematch number
-                    fight_info = handle_rematch(fight_info, fight_num, rematch_list)
-                    logger.info('Sending reply to initial comment...')
-                    send_reply(fight_info, comment, input_fight)
-                    logger.info('Success!\n')
-                    # Let me know that the bot has been triggered
-                    notify_myself(reddit, comment)
+    for i in range(6):
+        try:
+            for comment in subreddit.stream.comments():
+                text = comment.body.lower().strip()
+                index = get_trigger_index(text)
+                # Found a match
+                if index != -1:
+                    try:
+                        # Make sure bot hasn't already commented
+                        if comment.id not in commented_list:
+                            # Sanitize the input to just get the fight string
+                            input_fight = sanitize_input(text[index:])
+                            # Replace nicknames in input
+                            input_fight = replace_nicknames(input_fight, nickname_dict)
+                            # Retrieve all the fight info
+                            fight_info, fight_num = ff.get_fight_info_from_input(input_fight)
+                            # Handle if user entered a rematch number
+                            fight_info = handle_rematch(fight_info, fight_num, rematch_list)
+                            logger.info('Sending reply to initial comment...')
+                            send_reply(fight_info, comment, input_fight)
+                            logger.info('Success!\n')
+                            # Let me know that the bot has been triggered
+                            #notify_myself(reddit, comment)
 
-            except Exception:
-                logger.error('Error occurred.')
-                log_error(comment.body, sys.exc_info())
-                try:
-                    reply_and_log('I couldn\'t find this fight!' + troubleshoot_text, comment)
-                except praw.exceptions.PRAWException:
-                    log_error(comment.body, sys.exc_info())
+                    except Exception:
+                        logger.error('Error occurred.')
+                        log_error(comment.body, sys.exc_info())
+                        try:
+                            reply_and_log('I couldn\'t find this fight!' + troubleshoot_text, comment)
+                        except praw.exceptions.PRAWException:
+                            log_error(comment.body, sys.exc_info())
+        except Exception:
+            logger.error('Error in main()...normally would shut down program.')
+            exc_info = sys.exc_info()
+            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            log_error(now + ': This is the error stacktrace...', sys.exc_info())
+            traceback.print_exception(exc_info[0], exc_info[1], exc_info[2], file=sys.stdout)
+            time.sleep(10)
 
 
 if __name__ == '__main__':
