@@ -261,27 +261,27 @@ def send_reply(fight_info, comment, input_fight):
         count = 0
         for fight in fight_info:
             if fight[0] is None:
-                reply_and_log(generate_fail_text(input_fight, comment.author.name), comment)
+                log_and_reply(generate_fail_text(input_fight, comment.author.name), comment)
                 break
             else:
                 # Make sure the bot isn't commenting too fast
                 if count != 0:
                     time.sleep(2)
                     logger.info('Sending reply with next fight...')
-                reply_and_log(build_comment_reply(fight[0], fight[1], fight[2], fight[3]), comment)
+                log_and_reply(build_comment_reply(fight[0], fight[1], fight[2], fight[3]), comment)
                 count += 1
     # Easter egg jokes
     elif 'dana' in input_fight:
-        reply_and_log('Dana defeats Goof' + generate_victory_method(), comment)
+        log_and_reply('Dana defeats Goof' + generate_victory_method(), comment)
     elif 'usada' in input_fight:
         reply_and_log('USADA' + generate_victory_method(), comment)
     else:
-        reply_and_log(generate_fail_text(input_fight, comment.author.name), comment)
+        log_and_reply(generate_fail_text(input_fight, comment.author.name), comment)
 
 
-def reply_and_log(text, comment):
-    comment.reply(text)
+def log_and_reply(text, comment):
     log_comment(comment.id)
+    comment.reply(text)
 
 
 def generate_victory_method():
@@ -335,40 +335,35 @@ def run(commented_list, nickname_dict, rematch_list):
     # Monitoring incoming comment stream from subreddit
     subreddit = reddit.subreddit(cfg['target_subreddits'])
 
-    try:
-        for comment in subreddit.stream.comments():
-            text = comment.body.lower().strip()
-            index = get_trigger_index(text)
-            # Found a match
-            if index != -1:
-                try:
-                    # Make sure bot hasn't already commented
-                    if comment.id not in commented_list:
-                        # Sanitize the input to just get the fight string
-                        input_fight = sanitize_input(text[index:])
-                        # Replace nicknames in input
-                        input_fight = replace_nicknames(input_fight, nickname_dict)
-                        # Retrieve all the fight info
-                        fight_info, fight_num = ff.get_fight_info_from_input(input_fight)
-                        # Handle if user entered a rematch number
-                        fight_info = handle_rematch(fight_info, fight_num, rematch_list)
-                        logger.info('Sending reply to initial comment...')
-                        send_reply(fight_info, comment, input_fight)
-                        logger.info('Success!\n')
-                        # Let me know that the bot has been triggered
-                        notify_myself(reddit, comment)
+    for comment in subreddit.stream.comments():
+        text = comment.body.lower().strip()
+        index = get_trigger_index(text)
+        # Found a match
+        if index != -1:
+            try:
+                # Make sure bot hasn't already commented
+                if comment.id not in commented_list:
+                    # Let me know that the bot has been triggered
+                    notify_myself(reddit, comment)
+                    # Sanitize the input to just get the fight string
+                    input_fight = sanitize_input(text[index:])
+                    # Replace nicknames in input
+                    input_fight = replace_nicknames(input_fight, nickname_dict)
+                    # Retrieve all the fight info
+                    fight_info, fight_num = ff.get_fight_info_from_input(input_fight)
+                    # Handle if user entered a rematch number
+                    fight_info = handle_rematch(fight_info, fight_num, rematch_list)
+                    logger.info('Sending reply to initial comment...')
+                    send_reply(fight_info, comment, input_fight)
+                    logger.info('Success!\n')
 
-                except (AttributeError, PRAWException):
-                    logger.error('Error occurred...')
-                    log_error(comment.body, sys.exc_info())
-                    try:
-                        reply_and_log('I couldn\'t find this fight!' + troubleshoot_text, comment)
-                    except PRAWException:
-                        log_error(comment.body, sys.exc_info())
-    except (ConnectionResetError, PRAWException):
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        logger.error(now + ': Error in subreddit comment stream...')
-        log_error(now + ': Error stacktrace...', sys.exc_info())
+            except (AttributeError, PRAWException):
+                logger.error('Error occurred...')
+                log_error(comment.body, sys.exc_info())
+                try:
+                    log_and_reply('I couldn\'t find this fight!' + troubleshoot_text, comment)
+                except PRAWException:
+                    log_error('Error occurred at comment: ' + comment.body, sys.exc_info())
 
 
 def main():
@@ -387,8 +382,13 @@ def main():
     nickname_dict = create_nickname_dict(cfg['nickname_db'])
     # Create the rematch list to narrow down searches
     rematch_list = create_rematch_list(cfg['rematch_db'])
-    # Run bot, with retry (because of connection resets)
-    run(commented_list, nickname_dict, rematch_list)
+    try:
+        # Run bot, with retry (because of connection resets)
+        run(commented_list, nickname_dict, rematch_list)
+    except (ConnectionResetError, PRAWException, AttributeError):
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        logger.error('[' + now + '] Retrying failed, DecisionBot shutting down.')
+        log_error('[' + now + '] Error stacktrace...', sys.exc_info())
 
 
 if __name__ == '__main__':
