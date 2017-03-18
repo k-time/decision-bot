@@ -322,8 +322,8 @@ def tester():
 
 
 # Run the bot, retrying whenever there is an unavoidable connection reset
-@retry(tries=8, delay=8, jitter=0.5, logger=logger)
-def run(commented_list, nickname_dict, rematch_list):
+@retry(delay=10, logger=logger)
+def run(nickname_dict, rematch_list):
     # Authentication
     reddit = praw.Reddit(
             client_id=cfg['client_id'],
@@ -334,6 +334,9 @@ def run(commented_list, nickname_dict, rematch_list):
 
     # Monitoring incoming comment stream from subreddit
     subreddit = reddit.subreddit(cfg['target_subreddits'])
+
+    # Open log of previous bot comments
+    commented_list = get_commented_list()
 
     for comment in subreddit.stream.comments():
         text = comment.body.lower().strip()
@@ -376,15 +379,13 @@ def main():
         logger.setLevel(logging.INFO)
         ff.logger.setLevel(logging.INFO)
 
-    # Open log of previous bot comments
-    commented_list = get_commented_list()
     # Create the dictionary of nicknames to be replaced
     nickname_dict = create_nickname_dict(cfg['nickname_db'])
     # Create the rematch list to narrow down searches
     rematch_list = create_rematch_list(cfg['rematch_db'])
     try:
         # Run bot, with retry (because of connection resets)
-        run(commented_list, nickname_dict, rematch_list)
+        run(nickname_dict, rematch_list)
     except (ConnectionResetError, PRAWException, AttributeError):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         logger.error('[' + now + '] Retrying failed, DecisionBot shutting down.')
