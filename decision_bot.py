@@ -188,7 +188,7 @@ def create_rematch_list(rematch_db):
 
 
 def handle_rematch(fight_info, fight_num, rematch_list):
-    if fight_num > 0 and len(fight_info) > 0:
+    if fight_num > 0 and not fight_info and len(fight_info) > 0:
         # Reverse to get fights in chronological order
         fight_info.reverse()
         fight_result = fight_info[0][1].lower().replace(u'\xa0', u' ')
