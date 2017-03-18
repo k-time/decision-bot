@@ -1,5 +1,7 @@
 #!/bin/sh
 
-echo 'Restarted bot at' `date` >> /home/ubuntu/decision_bot/log.txt
-/home/ubuntu/decision_bot/stop.sh
-/home/ubuntu/decision_bot/start-background.sh
+BOT_HOME=$HOME/decision_bot
+
+echo 'Restarted bot at' `date` >> $BOT_HOME/log.txt
+$BOT_HOME/stop.sh
+$BOT_HOME/start-background.sh
