@@ -369,7 +369,7 @@ def main():
                             send_reply(fight_info, comment, input_fight)
                             logger.info('Success!\n')
                             # Let me know that the bot has been triggered
-                            #notify_myself(reddit, comment)
+                            notify_myself(reddit, comment)
 
                     except Exception:
                         logger.error('Error occurred.')
@@ -379,11 +379,9 @@ def main():
                         except praw.exceptions.PRAWException:
                             log_error(comment.body, sys.exc_info())
         except Exception:
-            logger.error('Error in main()...normally would shut down program.')
-            exc_info = sys.exc_info()
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            log_error(now + ': This is the error stacktrace...', sys.exc_info())
-            traceback.print_exception(exc_info[0], exc_info[1], exc_info[2], file=sys.stdout)
+            logger.error(now + ': Error in subreddit comment stream...')
+            log_error(now + ': Error stacktrace...', sys.exc_info())
             time.sleep(10)
 
 

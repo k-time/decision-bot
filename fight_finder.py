@@ -20,7 +20,7 @@ home_url = cfg['home_url']
 
 
 def get_fight_info(fighter_1, fighter_2):
-    if fighter_1 and fighter_2:
+    if fighter_1 and fighter_2 and len(fighter_1) > 1 and len(fighter_2) > 1:
         fight_urls = _get_fight_urls(fighter_1, fighter_2)
         return _get_fight_info_from_fight_page(fight_urls)
     return None
@@ -44,6 +44,9 @@ def _find_fight_url_matches(fight_list_1, fight_list_2):
                 url_2 = _sanitize_url(fight_url_2)
                 if url_1 == url_2:
                     fight_urls.append(url_1)
+                    if len(fight_urls) > 5:
+                        logger.warning('Limiting number of fight url matches to 6.')
+                        return fight_urls
     return fight_urls
 
 
