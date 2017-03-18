@@ -1,8 +1,10 @@
 #!/bin/sh
 
+BOT_HOME=$HOME/decision_bot
+
 echo "Processes before:"
-ps ax | grep decision_bot
-pkill python3
-echo "Proccesses after:"
-ps ax | grep decision_bot
+$BOT_HOME/check.sh
+pkill -f decision_bot.py
+echo "Processes after:"
+$BOT_HOME/check.sh
 echo "Decision bot stopped."

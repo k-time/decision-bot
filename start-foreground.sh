@@ -1,4 +1,6 @@
 #!/bin/sh
 
+BOT_HOME=$HOME/decision_bot
+
 echo 'Started decision bot...'
-python3 /home/ubuntu/decision_bot/decision_bot.py -d
+python3 $BOT_HOME/decision_bot.py -d
