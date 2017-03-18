@@ -1,13 +1,14 @@
 import sys
 import traceback
 import praw
-import praw.exceptions
+from praw.exceptions import PRAWException
 import string
 import time
 import random
 import logging
 import yaml
 import argparse
+from retry import retry
 from datetime import datetime
 import fight_finder as ff
 
@@ -320,6 +321,56 @@ def tester():
                 print(build_comment_reply(fight[0], fight[1], fight[2], fight[3]))
 
 
+# Run the bot, retrying whenever there is an unavoidable connection reset
+@retry(tries=8, delay=8, jitter=0.5, logger=logger)
+def run(commented_list, nickname_dict, rematch_list):
+    # Authentication
+    reddit = praw.Reddit(
+            client_id=cfg['client_id'],
+            client_secret=cfg['client_secret'],
+            user_agent=cfg['user_agent'],
+            username=cfg['username'],
+            password=cfg['pw'])
+
+    # Monitoring incoming comment stream from subreddit
+    subreddit = reddit.subreddit(cfg['target_subreddits'])
+
+    try:
+        for comment in subreddit.stream.comments():
+            text = comment.body.lower().strip()
+            index = get_trigger_index(text)
+            # Found a match
+            if index != -1:
+                try:
+                    # Make sure bot hasn't already commented
+                    if comment.id not in commented_list:
+                        # Sanitize the input to just get the fight string
+                        input_fight = sanitize_input(text[index:])
+                        # Replace nicknames in input
+                        input_fight = replace_nicknames(input_fight, nickname_dict)
+                        # Retrieve all the fight info
+                        fight_info, fight_num = ff.get_fight_info_from_input(input_fight)
+                        # Handle if user entered a rematch number
+                        fight_info = handle_rematch(fight_info, fight_num, rematch_list)
+                        logger.info('Sending reply to initial comment...')
+                        send_reply(fight_info, comment, input_fight)
+                        logger.info('Success!\n')
+                        # Let me know that the bot has been triggered
+                        notify_myself(reddit, comment)
+
+                except (AttributeError, PRAWException):
+                    logger.error('Error occurred...')
+                    log_error(comment.body, sys.exc_info())
+                    try:
+                        reply_and_log('I couldn\'t find this fight!' + troubleshoot_text, comment)
+                    except PRAWException:
+                        log_error(comment.body, sys.exc_info())
+    except (ConnectionResetError, PRAWException):
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        logger.error(now + ': Error in subreddit comment stream...')
+        log_error(now + ': Error stacktrace...', sys.exc_info())
+
+
 def main():
     # Command-line options parser
     parser = argparse.ArgumentParser(description='Reddit bot that searches and posts MMA scorecards.')
@@ -330,59 +381,14 @@ def main():
         logger.setLevel(logging.INFO)
         ff.logger.setLevel(logging.INFO)
 
-    # Authentication
-    reddit = praw.Reddit(
-            client_id=cfg['client_id'],
-            client_secret=cfg['client_secret'],
-            user_agent=cfg['user_agent'],
-            username=cfg['username'],
-            password=cfg['pw'])
-
     # Open log of previous bot comments
     commented_list = get_commented_list()
     # Create the dictionary of nicknames to be replaced
     nickname_dict = create_nickname_dict(cfg['nickname_db'])
     # Create the rematch list to narrow down searches
     rematch_list = create_rematch_list(cfg['rematch_db'])
-    # Monitoring incoming comment stream from subreddit
-    subreddit = reddit.subreddit(cfg['target_subreddits'])
-
-    for i in range(6):
-        try:
-            for comment in subreddit.stream.comments():
-                text = comment.body.lower().strip()
-                index = get_trigger_index(text)
-                # Found a match
-                if index != -1:
-                    try:
-                        # Make sure bot hasn't already commented
-                        if comment.id not in commented_list:
-                            # Sanitize the input to just get the fight string
-                            input_fight = sanitize_input(text[index:])
-                            # Replace nicknames in input
-                            input_fight = replace_nicknames(input_fight, nickname_dict)
-                            # Retrieve all the fight info
-                            fight_info, fight_num = ff.get_fight_info_from_input(input_fight)
-                            # Handle if user entered a rematch number
-                            fight_info = handle_rematch(fight_info, fight_num, rematch_list)
-                            logger.info('Sending reply to initial comment...')
-                            send_reply(fight_info, comment, input_fight)
-                            logger.info('Success!\n')
-                            # Let me know that the bot has been triggered
-                            notify_myself(reddit, comment)
-
-                    except Exception:
-                        logger.error('Error occurred.')
-                        log_error(comment.body, sys.exc_info())
-                        try:
-                            reply_and_log('I couldn\'t find this fight!' + troubleshoot_text, comment)
-                        except praw.exceptions.PRAWException:
-                            log_error(comment.body, sys.exc_info())
-        except Exception:
-            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            logger.error(now + ': Error in subreddit comment stream...')
-            log_error(now + ': Error stacktrace...', sys.exc_info())
-            time.sleep(10)
+    # Run bot, with retry (because of connection resets)
+    run(commented_list, nickname_dict, rematch_list)
 
 
 if __name__ == '__main__':
