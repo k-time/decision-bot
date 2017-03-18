@@ -274,7 +274,7 @@ def send_reply(fight_info, comment, input_fight):
     elif 'dana' in input_fight:
         log_and_reply('Dana defeats Goof' + generate_victory_method(), comment)
     elif 'usada' in input_fight:
-        reply_and_log('USADA' + generate_victory_method(), comment)
+        log_and_reply('USADA' + generate_victory_method(), comment)
     else:
         log_and_reply(generate_fail_text(input_fight, comment.author.name), comment)
 
