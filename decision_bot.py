@@ -135,8 +135,10 @@ def get_trigger_index(text):
         index = text.find(word + 'bot')
         if index != -1:
             return index
-        else:
-            return text.find(word + ' bot')
+        index = text.find(word + ' bot')
+        if index != -1:
+            return index
+    return -1
 
 
 # Reduce the input text to just the fight string

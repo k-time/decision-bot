@@ -36,6 +36,7 @@ fail_phrases:
   - "GSP is huge and your search query was bad."
   - "No luck, try again buddeh!"
   - "was never my friend. Just kidding. I couldn't find your fight."
+  - "[A gentleman never tells!](https://s3.amazonaws.com/decision-bot/nickdiaz.jpg). I mean, I couldn't find your fight."
 
 victory_methods:
   - "knockout"
