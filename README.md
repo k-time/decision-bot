@@ -2,7 +2,7 @@
 
 DecisionBot is a Reddit bot that retrieves and posts martial arts scorecards on-demand. It is triggered when users comment in any [r/mma](https://www.reddit.com/r/mma) thread with the fighter names.
 
-* [Example of use in discussion](https://www.reddit.com/r/MMA/comments/5zh47e/name_a_brutally_honest_fact_about_a_fighter_that/dey9kac/?context=3)
+* [Example of use in discussion](https://www.reddit.com/r/MMA/comments/616fhz/coach_del_fierro_says_exchamp_dominick_cruz_is/dfc7oxl/?context=3)
 * [Various usage examples](https://www.reddit.com/r/bottesting/comments/606f58/decisionbot_usage_examples/)
 * [Initial release thread on r/mma](https://www.reddit.com/r/MMA/comments/5vy9cc/decisionbot_new_rmma_bot_that_posts_decision/)
 
