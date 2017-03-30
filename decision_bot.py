@@ -12,7 +12,7 @@ from retry import retry
 from datetime import datetime
 import fight_finder as ff
 
-# Set logging level to INFO for all output, CRITICAL for no output
+# Set logging level to INFO for all output, CRITICAL for minimal output
 logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
 logger = logging.getLogger('DECISION_BOT')
 
@@ -326,6 +326,10 @@ def tester():
 # Run the bot, retrying whenever there is an unavoidable connection reset
 @retry(delay=10, logger=logger)
 def run(nickname_dict, rematch_list):
+    # Log date and time
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logger.warning('[' + now + '] Starting up DecisionBot...')
+
     # Authentication
     reddit = praw.Reddit(
             client_id=cfg['client_id'],
