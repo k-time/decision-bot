@@ -336,9 +336,7 @@ def _sanitize_url(url):
 
 
 # Check if a fight number is included in input, ex. Lawler vs. Hendricks 2.
-# Right now, function only can be used for removing numbers from input
-# because mmadecisions.com does not record the fight number, and fights
-# that do not end in a decision are not included on the website.
+# Used for rematch handling.
 def _get_fight_num(input_fight):
     # Convert roman numerals to regular digits
     roman_numerals = ('i', 'ii', 'iii')
