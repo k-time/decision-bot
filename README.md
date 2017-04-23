@@ -6,7 +6,7 @@ DecisionBot is a Reddit bot that retrieves and posts martial arts scorecards on-
 * [Various usage examples](https://www.reddit.com/r/bottesting/comments/606f58/decisionbot_usage_examples/)
 * [Initial release thread on r/mma](https://www.reddit.com/r/MMA/comments/5vy9cc/decisionbot_new_rmma_bot_that_posts_decision/)
 
-# Usage example
+## Usage example
 * User leaves comment: **decisionbot mcgregor vs diaz**
 * DecisionBot replies:
 
@@ -33,7 +33,7 @@ DecisionBot is a Reddit bot that retrieves and posts martial arts scorecards on-
     * **4/19** people scored it **47-47 DRAW**.
     * **1/19** people scored it **47-48 Diaz**.
 
-# Features
+## Features
 * You can use v / v. / vs / vs. / versus, or leave it out and the bot will figure it out.
 * Handles rematches (include the rematch number in the comment, or leave it out and the bot posts all fights).
 * Handles many fighter nicknames and common name misspellings.
@@ -41,7 +41,7 @@ DecisionBot is a Reddit bot that retrieves and posts martial arts scorecards on-
 * Put "decisionbot" anywhere in your comment.
 * Includes several easter eggs.
 
-# Files
+## Files
 File|Description
 :-:|---
 *fight_finder.py*|Searches and pulls fight data from [mmadecisions.com](http://mmadecisions.com/) using [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/bs4/doc/).
@@ -52,3 +52,14 @@ Bash scripts|Used for running DecisionBot continuously on server.
 *commented.txt*|List of recent comments that triggered DecisionBot.
 *nicknames.txt*|List of common nicknames and name misspellings.
 *rematches.txt*|Correctly adjusted rematch numbers.
+
+## Praise
+* *["This is one of the coolest and most useful bots I've seen on Reddit. True story."](https://www.reddit.com/r/MMA/comments/6656t9/this_legend_returns_saturday/dgfyzqz/?context=3)*
+* *["wtf im speechless , this is amazing! what a time to be alive"](https://www.reddit.com/r/MMA/comments/6656t9/this_legend_returns_saturday/dgg06i6/?context=10000)*
+* *["ALL GLORY TO THE BOT"](https://www.reddit.com/r/MMA/comments/636xw6/video_gsp_dominates_jon_fitch_for_5_rounds_in_one/dfs9tnq/?context=10000)*
+* *[".... you just summoned a decision bot...?... the internet truly is wondrous."](https://www.reddit.com/r/MMA/comments/63ars2/aldo_vs_holloway_ufc_212/dfsu96p/?context=10000)*
+* *["wow! very fantastic bot!"](https://www.reddit.com/r/MMA/comments/61rwx9/al_iaquinta_happy_to_be_past_contract/dfgu15j/?context=3)*
+* *["I did not even know this magic existed."](https://www.reddit.com/r/MMA/comments/5yrbbo/official_general_discussion_thread_march_11_2017/desorq1/?context=3)*
+* *["What is this voodoo?"](https://www.reddit.com/r/MMA/comments/5xl567/official_ufc_209_woodley_vs_thompson_2_live/deixg9v/?context=10000)*
+* *["Decisionbot I love you man."](https://www.reddit.com/r/MMA/comments/5xcqnu/nate_diaz_was_considered_as_a_late_replacement_to/deh4azr/?context=3)*
+* *["God I love this bot."](https://www.reddit.com/r/MMA/comments/5x1lk6/official_general_discussion_thread_march_02_2017/deflghh/?context=3)*
