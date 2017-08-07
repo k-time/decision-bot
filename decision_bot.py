@@ -24,7 +24,7 @@ comment_log = cfg['comment_log_name']
 troubleshoot_text = cfg['troubleshoot_text']
 
 
-def build_comment_reply(score_tables, fight_result, media_scores, event_info):
+def build_comment_reply(score_tables, fight_result, media_scores, event_info, comment_author):
     comment = fight_result + '\n\n'
     if event_info is not None:
         comment += event_info + '\n\n'
@@ -37,7 +37,7 @@ def build_comment_reply(score_tables, fight_result, media_scores, event_info):
     # Adding scorecards
     comment += build_scorecard_text(score_tables)
     # Adding judges
-    comment += build_judge_text(score_tables) + '\n\n'
+    comment += build_judge_text(score_tables, comment_author) + '\n\n'
     # Adding media scores
     comment += build_media_scores_text(media_scores)
 
@@ -82,11 +82,11 @@ def build_scorecard_text(score_tables):
     return scorecard_text
 
 
-def build_judge_text(score_tables):
+def build_judge_text(score_tables, comment_author):
     judge_text = 'Judges, in order: '
     for judge, table in score_tables:
         judge_text += judge + ', '
-    return '*^(' + judge_text.strip(string.punctuation + ' ') + '.)*'
+    return '*^(' + judge_text.strip(string.punctuation + ' ') + '. Summoned by ' + comment_author + '.)*'
 
 
 def build_media_scores_text(media_scores):
@@ -270,7 +270,7 @@ def send_reply(fight_info, comment, input_fight):
                 if count != 0:
                     time.sleep(2)
                     logger.info('Sending reply with next fight...')
-                log_and_reply(build_comment_reply(fight[0], fight[1], fight[2], fight[3]), comment)
+                log_and_reply(build_comment_reply(fight[0], fight[1], fight[2], fight[3], comment.author.name), comment)
                 count += 1
     # Easter egg jokes
     elif 'dana' in input_fight:
@@ -320,7 +320,7 @@ def tester():
             if fight[0] is None:
                 print(fail_text)
             else:
-                print(build_comment_reply(fight[0], fight[1], fight[2], fight[3]))
+                print(build_comment_reply(fight[0], fight[1], fight[2], fight[3], 'test_author'))
 
 
 # Run the bot, retrying whenever there is an unavoidable connection reset
