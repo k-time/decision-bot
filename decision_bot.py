@@ -293,7 +293,7 @@ def generate_victory_method():
 
 def notify_myself(reddit, comment):
     # Permalink requires different formatting for desktop vs. mobile website
-    permalink = 'www.reddit.com' + comment.permalink(fast=True)
+    permalink = 'www.reddit.com' + comment.permalink
     reddit.redditor(cfg['personal_username']).message(
         'DecisionBot triggered',
         comment.body
