@@ -18,7 +18,7 @@ nickname_db: "nicknames.txt"
 rematch_db: "rematches.txt"
 
 # Subreddits for bot to be active in
-target_subreddits: "mma+betsmma+bottesting"
+target_subreddits: "mma+bottesting"
 
 troubleshoot_text: " [Troubleshooting](https://s3.amazonaws.com/decision-bot/error_message.txt)"
 
