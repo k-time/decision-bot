@@ -268,7 +268,7 @@ def send_reply(fight_info, comment, input_fight):
             else:
                 # Make sure the bot isn't commenting too fast
                 if count != 0:
-                    time.sleep(2)
+                    time.sleep(5)
                     logger.info('Sending reply with next fight...')
                 log_and_reply(build_comment_reply(fight[0], fight[1], fight[2], fight[3], comment.author.name), comment)
                 count += 1
