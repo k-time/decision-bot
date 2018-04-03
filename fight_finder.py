@@ -291,7 +291,7 @@ def _get_media_scores(soup):
         media_scores = []
         if media_rows:
             for row in media_rows:
-                score = row.a.getText().strip()
+                score = row.find('a', attrs={'class': 'external'}).getText().strip()
                 fighter = row.find_all('td', attrs={'align': 'center'})[-1].getText()
                 media_scores.append((score, fighter))
     except AttributeError:
