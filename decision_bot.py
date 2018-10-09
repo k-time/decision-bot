@@ -160,7 +160,7 @@ def generate_fail_text(input_fight, comment_author):
     if phrase.startswith('was never'):
         phrase = comment_author + ' ' + phrase
     num = random.random()
-    if num < .5:  # Adjust this number to adjust the type of failure phrases
+    if num < .333:  # Adjust this number to adjust the type of failure phrases
         return phrase
     else:
         fighter_1, fighter_2, fight_num = ff.get_fighters_from_input(input_fight)
