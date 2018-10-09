@@ -118,7 +118,7 @@ def create_nickname_dict(nickname_db):
                 if len(names) == 2:
                     nickname_dict[names[0]] = names[1]
     except FileNotFoundError:
-        logger.error('File \'' + nickname_db + '\' not found!')
+        logger.exception('File \'{}\' not found!'.format(nickname_db))
 
     return nickname_dict
 
@@ -186,7 +186,7 @@ def create_rematch_list(rematch_db):
                 cells = line.split('|')
                 rematch_list.append(tuple(cells))
     except FileNotFoundError:
-        logger.error('File \'' + rematch_db + '\' not found!')
+        logger.exception('File \'{}\' not found!'.format(rematch_db))
 
     return rematch_list
 
@@ -232,7 +232,7 @@ def log_message(comment_body, message):
             f.write(comment_body + '\n' + message + '\n')
             f.write('-------------\n')
     except FileNotFoundError:
-        logger.error('File \'' + log + '\' not found!')
+        logger.exception('File \'{}\' not found!'.format(log))
         logger.error(comment_body + '\n' + message)
 
 
@@ -243,7 +243,7 @@ def log_error(text, exc_info):
             traceback.print_exception(exc_info[0], exc_info[1], exc_info[2], file=f)
             f.write('-------------\n')
     except FileNotFoundError:
-        logger.error('File \'' + log + '\' not found!')
+        logger.exception('File \'{}\' not found!'.format(log))
         logger.error(text + '\n')
         traceback.print_exception(exc_info[0], exc_info[1], exc_info[2], file=sys.stdout)
 
@@ -253,8 +253,8 @@ def log_comment(comment_id):
         with open(comment_log, 'a') as f:
             f.write(comment_id + '\n')
     except FileNotFoundError:
-        logger.error('File \'' + comment_log + '\' not found!')
-        logger.error('Comment ID being logged: ' + comment_id)
+        logger.exception('File \'{}\' not found!'.format(comment_log))
+        logger.error('Comment ID being logged: {}'.format(comment_id))
 
 
 def send_reply(fight_info, comment, input_fight):
@@ -328,7 +328,7 @@ def tester():
 def run(nickname_dict, rematch_list):
     # Log date and time
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    logger.warning('[' + now + '] Starting up DecisionBot...')
+    logger.info('[' + now + '] Starting up DecisionBot...')
 
     # Authentication
     reddit = praw.Reddit(
@@ -367,7 +367,7 @@ def run(nickname_dict, rematch_list):
                     logger.info('Success!\n')
 
             except (AttributeError, PRAWException):
-                logger.error('Error occurred...')
+                logger.exception('Error occurred...')
                 log_error(comment.body, sys.exc_info())
                 try:
                     log_and_reply('I couldn\'t find this fight!' + troubleshoot_text, comment)
@@ -394,7 +394,7 @@ def main():
         run(nickname_dict, rematch_list)
     except (ConnectionResetError, PRAWException, AttributeError):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        logger.error('[' + now + '] Retrying failed, DecisionBot shutting down.')
+        logger.exception('[' + now + '] Retrying failed, DecisionBot shutting down.')
         log_error('[' + now + '] Error stacktrace...', sys.exc_info())
 
 

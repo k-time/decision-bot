@@ -65,7 +65,7 @@ def _get_fight_url_list(fighter):
             # Currently there is a search functionality issue with mmadecisions.com
             url = url.replace('mmadecisions/fighter', 'fighter')
         except requests.HTTPError:
-            logger.error('Could not open url ' + query_url)
+            logger.exception('Could not open url {}'.format(query_url))
             return None
 
     # If page redirects to a fighter url
@@ -179,8 +179,8 @@ def _get_fight_info_from_fight_page(fight_urls):
         if not score_tables:
             return None
         fight_result = _get_fight_result(soup, url)
-        event_info = _get_event_info(soup)
-        media_scores = _get_media_scores(soup)
+        event_info = _get_event_info(soup, url)
+        media_scores = _get_media_scores(soup, url)
 
         # Add a tuple containing all fight info
         fight_info.append((score_tables, fight_result, media_scores, event_info))
@@ -255,14 +255,14 @@ def _get_fight_result(soup, url):
         fight_result = '[**' + first_fighter.upper() + ' ' + action + ' ' + \
                        second_fighter.upper() + '** (*' + decision.lower() + '*)](' + url + ')'
     except AttributeError:
-        logger.warning('Could not retrieve fight result.')
+        logger.exception('Could not retrieve fight result from url {}'.format(url))
         return None
 
     return fight_result
 
 
 # Getting the event info from the fight page
-def _get_event_info(soup):
+def _get_event_info(soup, url):
     try:
         event_section = soup.find('td', attrs={'class': 'decision-top2', 'colspan': '2'})
         info = event_section.getText().replace('\t', '').strip('\n').split('\n')
@@ -271,20 +271,20 @@ def _get_event_info(soup):
             event_info = info[0].strip()
             if len(info) >= 2:
                 # Adding the event date
-                event_date = _get_full_date(info[1].strip())
+                event_date = _get_full_date(info[1].strip(), url)
                 event_info += ' — ' + event_date
                 event_info = '^(' + event_info + ')'
         else:
             return None
     except AttributeError:
-        logger.warning('Could not retrieve event info.')
+        logger.exception('Could not retrieve event info from url {}'.format(url))
         return None
 
     return event_info
 
 
 # Getting the media scores from the fight page
-def _get_media_scores(soup):
+def _get_media_scores(soup, url):
     try:
         media_section = soup.find('table', attrs={'style': 'border-spacing: 0px; width: 100%'})
         media_rows = media_section.find_all('tr', attrs={'class': 'decision'})
@@ -295,19 +295,19 @@ def _get_media_scores(soup):
                 fighter = row.find_all('td', attrs={'align': 'center'})[-1].getText()
                 media_scores.append((score, fighter))
     except AttributeError:
-        logger.warning('Could not retrieve media scores.')
+        logger.exception('Could not retrieve media scores from url {}'.format(url))
         return None
 
     return media_scores
 
 
-def _get_full_date(num_date):
+def _get_full_date(num_date, url):
     try:
         # Convert numerical date YYYY-mm-dd to full date (ex. January 1, 2000)
         d = datetime.strptime(num_date, '%Y-%m-%d')
         return d.strftime('%B %d, %Y')
     except ValueError:
-        logger.warning('Could not convert date.')
+        logger.exception('Could not convert date at url {}'.format(url))
         return num_date
 
 
