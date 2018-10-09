@@ -22,6 +22,8 @@ with open('config.yaml', 'r') as cfg_file:
 log = cfg['log_name']
 comment_log = cfg['comment_log_name']
 troubleshoot_text = cfg['troubleshoot_text']
+phrases = cfg['fail_phrases']
+PHRASE_INDEX = 0
 
 
 def build_comment_reply(score_tables, fight_result, media_scores, event_info, comment_author):
@@ -153,21 +155,30 @@ def sanitize_input(text):
     return text.strip(string.punctuation + ' ')
 
 
-# Randomly pick a failure message
-def generate_fail_text(input_fight, comment_author):
-    phrases = cfg['fail_phrases']
-    phrase = random.choice(phrases) + troubleshoot_text
+# Cycle through the list of failure phrases
+def get_failure_phrase(comment_author):
+    global PHRASE_INDEX
+    if PHRASE_INDEX >= len(phrases):
+        PHRASE_INDEX = 0
+
+    phrase = phrases[PHRASE_INDEX] + troubleshoot_text
+    PHRASE_INDEX += 1
     if phrase.startswith('was never'):
         phrase = "{} {}".format(comment_author, phrase)
     elif phrase.startswith("I'm sitting on about"):
         phrase = "{} {}".format(comment_author, phrase)
+
+    return phrase
+
+
+def generate_fail_text(input_fight, comment_author):
     num = random.random()
-    if num < .333:  # Adjust this number to adjust the type of failure phrases
-        return phrase
+    if num < .5:  # Adjust this number to adjust the type of failure phrases
+        return get_failure_phrase(comment_author)
     else:
         fighter_1, fighter_2, fight_num = ff.get_fighters_from_input(input_fight)
         if fighter_1 is None:
-            return phrase
+            return get_failure_phrase(comment_author)
         else:
             coin_flip = random.randint(0, 1)
             fighter = fighter_1 if coin_flip == 0 else fighter_2

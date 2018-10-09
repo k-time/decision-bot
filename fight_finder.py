@@ -307,7 +307,7 @@ def _get_full_date(num_date, url):
         d = datetime.strptime(num_date, '%Y-%m-%d')
         return d.strftime('%B %d, %Y')
     except ValueError:
-        logger.exception('Could not convert date at url {}'.format(url))
+        logger.error('Could not convert date at url {}'.format(url))
         return num_date
 
 
