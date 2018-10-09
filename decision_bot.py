@@ -324,7 +324,7 @@ def tester():
 
 
 # Run the bot, retrying whenever there is an unavoidable connection reset
-@retry(delay=10, logger=logger)
+@retry(delay=20, logger=logger)
 def run(nickname_dict, rematch_list):
     # Log date and time
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
