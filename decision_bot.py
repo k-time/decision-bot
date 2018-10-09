@@ -158,7 +158,9 @@ def generate_fail_text(input_fight, comment_author):
     phrases = cfg['fail_phrases']
     phrase = random.choice(phrases) + troubleshoot_text
     if phrase.startswith('was never'):
-        phrase = comment_author + ' ' + phrase
+        phrase = "{} {}".format(comment_author, phrase)
+    elif phrase.startswith("I'm sitting on about"):
+        phrase = "{} {}".format(comment_author, phrase)
     num = random.random()
     if num < .333:  # Adjust this number to adjust the type of failure phrases
         return phrase
