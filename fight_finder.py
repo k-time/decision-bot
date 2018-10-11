@@ -304,8 +304,9 @@ def _get_media_scores(soup, url):
 def _get_full_date(num_date, url):
     try:
         # Convert numerical date YYYY-mm-dd to full date (ex. January 1, 2000)
-        d = datetime.strptime(num_date, '%Y-%m-%d')
-        return d.strftime('%B %d, %Y')
+        # d = datetime.strptime(num_date, '%B %d, %Y')
+        # return d.strftime('%B %d, %Y')
+        return num_date
     except ValueError:
         logger.error('Could not convert date at url {}'.format(url))
         return num_date

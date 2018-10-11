@@ -10,6 +10,8 @@ import yaml
 import argparse
 from retry import retry
 from datetime import datetime
+from typing import List, Tuple, Set
+
 import fight_finder as ff
 
 # Set logging level to INFO for all output, CRITICAL for minimal output
@@ -91,22 +93,82 @@ def build_judge_text(score_tables, comment_author):
     return '\n*^({}.)*\n*^(Summoned by {}.)*'.format(judge_text.strip(string.punctuation + ' '), comment_author)
 
 
-def build_media_scores_text(media_scores):
+def build_media_scores_text(media_scores) -> str:
     if not media_scores:
         return 'No media scores available for this fight.'
     else:
         media_text = '**MEDIA MEMBER SCORES**\n\n'
         total = len(media_scores)
-        covered = set()
+        score_set = set()
+
+        fighter_1_total = 0
+        fighter_2_total = 0
+        calculate_average = True
 
         for score in media_scores:
-            if score not in covered:
+            if score not in score_set:
                 count = media_scores.count(score)
                 media_text += '- **' + str(count) + '/' + str(total) + \
                               '** people scored it **' + score[0] + ' ' + score[1] + '**.\n'
-                covered.add(score)
+                score_set.add(score)
+
+            if calculate_average:
+                try:
+                    # Calculating average score
+                    score_list = score[0].split('-')  # Convert score '30-27' to ['30, '27']
+                    fighter_1_total += int(score_list[0])
+                    fighter_2_total += int(score_list[1])
+                except Exception:
+                    logger.exception("Error occurred adding scores at score {}".format(score))
+                    calculate_average = False
+
+        if calculate_average and total >= 6:  # Don't calculate averages if less than X media scores
+            try:
+                media_text += _get_average_media_score_text(media_scores, score_set,
+                                                            fighter_1_total, fighter_2_total, total)
+            except Exception:
+                logger.exception("Error occurred calculating avg media scorecard for media scores {}"
+                                 .format(str(media_scores)))
 
         return media_text
+
+
+def _get_average_media_score_text(media_scores: List[Tuple[str, str]], score_set: Set[Tuple[str, str]],
+                                  fighter_1_total: int, fighter_2_total: int, total: int) -> str:
+    if len(score_set) == 1:
+        winning_score = media_scores[0][0]
+        winning_fighter = media_scores[0][1]
+        return "\nAverage media score: **{} {}**. Quick maths.\n".format(winning_score, winning_fighter)
+
+    fighter_1_score = fighter_1_total / total
+    fighter_2_score = fighter_2_total / total
+    rounded_score_1 = round(fighter_1_score, 1)
+    rounded_score_2 = round(fighter_2_score, 1)
+
+    winning_score = "{}-{}".format(rounded_score_1, rounded_score_2)
+
+    # Handling draws
+    if fighter_1_total == fighter_2_total or rounded_score_1 == rounded_score_2:
+        winning_fighter = "DRAW"
+    elif abs(fighter_1_score - fighter_2_score) < .5:
+        winning_fighter = "**DRAW** (within 0.5)"
+        return "\nAverage media score: **{}** {}.\n".format(winning_score, winning_fighter)
+    # There was a winner
+    else:
+        if fighter_1_score > fighter_2_score:
+            winning_fighter = "Fighter 1"
+            for score in media_scores:
+                if score[1] != "DRAW":
+                    winning_fighter = score[1]
+                    break
+        else:
+            winning_fighter = "Fighter 2"
+            for score in reversed(media_scores):
+                if score[1] != "DRAW":
+                    winning_fighter = score[1]
+                    break
+
+    return "\nAverage media score: **{} {}**.\n".format(winning_score, winning_fighter)
 
 
 # Replace nicknames and common name mistakes in user input
@@ -320,20 +382,21 @@ def tester():
     rematch_list = create_rematch_list(cfg['rematch_db'])
     fail_text = 'I couldn\'t find this fight! Check your spelling, or maybe the fight didn\'t end in a decision.'
 
-    print('Enter fight:')
-    input_fight = input()
-    input_fight = replace_nicknames(input_fight, nickname_dict)
-    print('Searching...')
-    fight_info, fight_num = ff.get_fight_info_from_input(input_fight)
-    fight_info = handle_rematch(fight_info, fight_num, rematch_list)
-    if not fight_info:
-        print(fail_text)
-    else:
-        for fight in fight_info:
-            if fight[0] is None:
-                print(fail_text)
-            else:
-                print(build_comment_reply(fight[0], fight[1], fight[2], fight[3], 'test_author'))
+    while True:
+        print('Enter fight:')
+        input_fight = input()
+        input_fight = replace_nicknames(input_fight, nickname_dict)
+        print('Searching...')
+        fight_info, fight_num = ff.get_fight_info_from_input(input_fight)
+        fight_info = handle_rematch(fight_info, fight_num, rematch_list)
+        if not fight_info:
+            print(fail_text)
+        else:
+            for fight in fight_info:
+                if fight[0] is None:
+                    print(fail_text)
+                else:
+                    print(build_comment_reply(fight[0], fight[1], fight[2], fight[3], 'test_author'))
 
 
 # Run the bot, retrying whenever there is an unavoidable connection reset

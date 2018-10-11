@@ -7,7 +7,6 @@ shogun:mauricio
 cro cop:filipovic
 sexyama:akiyama
 jds:junior dos santos
-dhk:dong hyun kim
 mayhem:jason
 tank abbott:david abbott
 osp:ovince saint preux
@@ -19,10 +18,13 @@ minotouro:antonio rogerio nogueira
 little nog:antonio rogerio nogueira
 lil nog:antonio rogerio nogueira
 gustaffson:gustafsson
+gustafsonn:gustafsson
+gustaffsonn:gustafsson
+gustafson:gustafsson
+bigfoot:antonio
 st.-pierre:st-pierre
 st. pierre:st-pierre
 aubin mercier:aubin-mercier
-dillishaw:dillashaw
 king mo:muhammed lawal
 rda :rafael dos anjos 
  rda: rafael dos anjos
@@ -35,8 +37,12 @@ tj :t.j.
 randemie:randamie
 gdr:germaine de randamie
 benevidez:benavidez
+benavides:benavidez
+benevides:benavidez
 vannata:vannatta
 wonderboy:stephen thompson
 ggg:golovkin
 triple g:golovkin
 canelo:saul alvarez
+damian maia:demian maia
+ozdemir:oezdemir
