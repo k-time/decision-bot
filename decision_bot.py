@@ -31,11 +31,11 @@ PHRASE_INDEX = 0
 def build_comment_reply(score_tables, fight_result: str, media_scores: List[Tuple[str, str]], event_info: str,
                         comment_author: str):
     if "JON JONES" in fight_result:
-        fight_result = fight_result.replace("JON JONES", "JON JONES👀👀", 1)
+        fight_result = fight_result.replace("JON JONES", "JON JONES 👀👀", 1)
     if "DANIEL CORMIER" in fight_result:
-        fight_result = fight_result.replace("DANIEL CORMIER", "DANIEL CORMIER🎂🍗", 1)
+        fight_result = fight_result.replace("DANIEL CORMIER", "DANIEL CORMIER 🎂🍗", 1)
     if "ALEXANDER GUSTAFSSON" in fight_result:
-        fight_result = fight_result.replace("ALEXANDER GUSTAFSSON", "ALEXANDER GUSTAFSSON⧨⧨", 1)
+        fight_result = fight_result.replace("ALEXANDER GUSTAFSSON", "ALEXANDER GUSTAFSSON ⧨⧨", 1)
     elif "ARTEM LOBOV" in fight_result:
         fight_result = fight_result.replace("ARTEM LOBOV", "THE GOAT", 1)
         if event_info is not None:
