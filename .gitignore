@@ -5,3 +5,4 @@ Newkeypair.pem
 *.out
 .idea/
 __pycache__/
+venv/
