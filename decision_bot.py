@@ -210,7 +210,7 @@ def _get_average_media_score_text(media_scores: List[Tuple[str, str]], score_set
         else:
             confidence_level = "high certainty"
 
-    explanation_url = 'https://www.reddit.com/9p4xc7'
+    explanation_url = 'https://redd.it/9p4xc7'
     return "\nAverage media score: **{} {}** (*{}^[[1]]({})*).\n".format(winning_score, winning_fighter,
                                                                            confidence_level, explanation_url)
 
