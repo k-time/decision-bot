@@ -163,7 +163,7 @@ def _get_average_media_score_text(media_scores: List[Tuple[str, str]], score_set
     if len(score_set) == 1:
         winning_score = media_scores[0][0]
         winning_fighter = media_scores[0][1]
-        return "\nAverage media score: **{} {}**. Quick maths.\n".format(winning_score, winning_fighter)
+        return "\nAvg. media score: **{} {}**. Quick maths.\n".format(winning_score, winning_fighter)
 
     fighter_1_score = fighter_1_total / total
     fighter_2_score = fighter_2_total / total
@@ -211,7 +211,7 @@ def _get_average_media_score_text(media_scores: List[Tuple[str, str]], score_set
             confidence_level = "high certainty"
 
     explanation_url = 'https://redd.it/9p4xc7'
-    return "\nAverage media score: **{} {}** (*{}^[[1]]({})*).\n".format(winning_score, winning_fighter,
+    return "\nAvg. media score: **{} {}** (*{}^[[1]]({})*).\n".format(winning_score, winning_fighter,
                                                                            confidence_level, explanation_url)
 
 
