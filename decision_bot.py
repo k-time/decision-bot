@@ -10,6 +10,7 @@ import yaml
 import argparse
 from retry import retry
 from datetime import datetime
+from scipy import stats
 from typing import List, Tuple, Set
 
 import fight_finder as ff
@@ -123,6 +124,7 @@ def build_media_scores_text(media_scores) -> str:
 
         fighter_1_total = 0
         fighter_2_total = 0
+        score_diff_list = []
         calculate_average = True
 
         for score in media_scores:
@@ -138,14 +140,16 @@ def build_media_scores_text(media_scores) -> str:
                     score_list = score[0].split('-')  # Convert score '30-27' to ['30, '27']
                     fighter_1_total += int(score_list[0])
                     fighter_2_total += int(score_list[1])
+                    score_diff_list.append(int(score_list[0]) - int(score_list[1]))
+
                 except Exception:
                     logger.exception("Error occurred adding scores at score {}".format(score))
                     calculate_average = False
 
         if calculate_average and total >= 6:  # Don't calculate averages if less than X media scores
             try:
-                media_text += _get_average_media_score_text(media_scores, score_set,
-                                                            fighter_1_total, fighter_2_total, total)
+                media_text += _get_average_media_score_text(media_scores, score_set, fighter_1_total, fighter_2_total,
+                                                            score_diff_list, total)
             except Exception:
                 logger.exception("Error occurred calculating avg media scorecard for media scores {}"
                                  .format(str(media_scores)))
@@ -154,7 +158,8 @@ def build_media_scores_text(media_scores) -> str:
 
 
 def _get_average_media_score_text(media_scores: List[Tuple[str, str]], score_set: Set[Tuple[str, str]],
-                                  fighter_1_total: int, fighter_2_total: int, total: int) -> str:
+                                  fighter_1_total: int, fighter_2_total: int, score_diff_list: List[int],
+                                  total: int) -> str:
     if len(score_set) == 1:
         winning_score = media_scores[0][0]
         winning_fighter = media_scores[0][1]
@@ -167,12 +172,22 @@ def _get_average_media_score_text(media_scores: List[Tuple[str, str]], score_set
 
     winning_score = "{}-{}".format(rounded_score_1, rounded_score_2)
 
+    # One sample t-test; null hypothesis is a draw (score diff is 0)
+    t, p = stats.ttest_1samp(score_diff_list, 0)
+    if p is None:
+        logger.error("p was null")
+        return ""
+
     # Handling draws
-    if fighter_1_total == fighter_2_total or rounded_score_1 == rounded_score_2:
+    # if fighter_1_total == fighter_2_total or rounded_score_1 == rounded_score_2:
+    if p > .2:
         winning_fighter = "DRAW"
-    elif abs(fighter_1_score - fighter_2_score) < .5:
-        winning_fighter = "**DRAW** (within 0.5)"
-        return "\nAverage media score: **{}** {}.\n".format(winning_score, winning_fighter)
+        if p > .4:
+            confidence_level = "high certainty"
+        elif p > .3:
+            confidence_level = "moderate certainty"
+        else:
+            confidence_level = "low certainty"
     # There was a winner
     else:
         if fighter_1_score > fighter_2_score:
@@ -188,7 +203,16 @@ def _get_average_media_score_text(media_scores: List[Tuple[str, str]], score_set
                     winning_fighter = score[1]
                     break
 
-    return "\nAverage media score: **{} {}**.\n".format(winning_score, winning_fighter)
+        if p > .1:
+            confidence_level = "low certainty in winner"
+        elif p > .05:
+            confidence_level = "moderate certainty in winner"
+        else:
+            confidence_level = "high certainty in winner"
+
+    explanation_url = 'https://www.reddit.com/r/DecisionBot/comments/9p4xc7/confidence_level_explanation/'
+    return "\nAverage media score: **{} {}** (*[{}]({})*).\n".format(winning_score, winning_fighter, confidence_level,
+                                                                     explanation_url)
 
 
 # Replace nicknames and common name mistakes in user input
