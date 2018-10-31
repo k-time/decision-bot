@@ -328,7 +328,7 @@ def handle_rematch(fight_info, fight_num, rematch_list):
     return fight_info
 
 
-def get_commented_list():
+def get_commented_set() -> Set[str]:
     try:
         with open(comment_log, 'r') as f:
             commented_list = f.read().splitlines()
@@ -342,7 +342,7 @@ def get_commented_list():
         log_error(error_text, sys.exc_info())
         sys.exit(1)
 
-    return commented_list
+    return set(commented_list)
 
 
 def log_message(comment_body, message):
@@ -462,7 +462,7 @@ def run(nickname_dict, rematch_list):
     subreddit = reddit.subreddit(cfg['target_subreddits'])
 
     # Open log of previous bot comments
-    commented_list = get_commented_list()
+    commented_set = get_commented_set()
 
     for comment in subreddit.stream.comments():
         text = comment.body.lower().strip()
@@ -471,7 +471,7 @@ def run(nickname_dict, rematch_list):
         if index != -1:
             try:
                 # Make sure bot hasn't already commented
-                if comment.id not in commented_list:
+                if comment.id not in commented_set:
                     # Let me know that the bot has been triggered
                     notify_myself(reddit, comment)
                     # Sanitize the input to just get the fight string
