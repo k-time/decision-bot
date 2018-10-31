@@ -182,9 +182,9 @@ def _get_average_media_score_text(media_scores: List[Tuple[str, str]], score_set
     # if fighter_1_total == fighter_2_total or rounded_score_1 == rounded_score_2:
     if p > .2:
         winning_fighter = "DRAW"
-        if p > .4:
+        if p > .6:
             confidence_level = "high certainty"
-        elif p > .3:
+        elif p > .4:
             confidence_level = "moderate certainty"
         else:
             confidence_level = "low certainty"
