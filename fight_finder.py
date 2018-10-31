@@ -38,15 +38,17 @@ def _find_fight_url_matches(fight_list_1, fight_list_2):
     # Need to return a list of all matches, in case of rematches
     fight_urls = []
     if fight_list_1 is not None and fight_list_2 is not None:
+        url_set = set()
         for fight_url_1 in fight_list_1:
-            for fight_url_2 in fight_list_2:
-                url_1 = _sanitize_url(fight_url_1)
-                url_2 = _sanitize_url(fight_url_2)
-                if url_1 == url_2:
-                    fight_urls.append(url_1)
-                    if len(fight_urls) > 5:
-                        logger.warning('Limiting number of fight url matches to 6.')
-                        return fight_urls
+            url_set.add(_sanitize_url(fight_url_1))
+
+        for fight_url_2 in fight_list_2:
+            url_2 = _sanitize_url(fight_url_2)
+            if url_2 in url_set:
+                fight_urls.append(url_2)
+                if len(fight_urls) > 5:
+                    logger.warning('Limiting number of fight url matches to 6.')
+                    return fight_urls
     return fight_urls
 
 
@@ -194,7 +196,7 @@ def _get_score_tables(soup):
     score_tables = []
 
     # Finding the decision scores table on the page
-    html_tables = soup.find_all('table', limit=3, attrs={'style': 'border-spacing: 1px; width: 100%'})
+    html_tables = soup.find_all('table', limit=3, attrs={'cellspacing': '1', 'width': '100%'})
     if not html_tables:
         return None
 
@@ -286,7 +288,7 @@ def _get_event_info(soup, url):
 # Getting the media scores from the fight page
 def _get_media_scores(soup, url):
     try:
-        media_section = soup.find('table', attrs={'style': 'border-spacing: 0px; width: 100%'})
+        media_section = soup.find('table', attrs={'cellspacing': '2', 'width': '100%'})
         media_rows = media_section.find_all('tr', attrs={'class': 'decision'})
         media_scores = []
         if media_rows:
