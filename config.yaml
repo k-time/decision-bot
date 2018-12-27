@@ -61,7 +61,7 @@ easter_eggs:
 ############### fight_finder configs ###############
 
 home_url: "http://mmadecisions.com/"
-search_url: "http://mmadecisions.com/search.jsp?s="
+search_url: "http://mmadecisions.com/search?s="
 fighter_sub_url: "mmadecisions.com/fighter/"
 search_sub_url: "mmadecisions.com/search"
 
