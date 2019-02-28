@@ -46,3 +46,4 @@ triple g:golovkin
 canelo:saul alvarez
 damian maia:demian maia
 ozdemir:oezdemir
+mvp:michael page
