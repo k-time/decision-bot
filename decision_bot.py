@@ -273,6 +273,8 @@ def get_failure_phrase(comment_author):
         phrase = "{} {}".format(comment_author, phrase)
     elif phrase.startswith("I'm sitting on about"):
         phrase = "{} {}".format(comment_author, phrase)
+    elif phrase.startswith("the piece of"):
+        phrase = "{} {}".format(comment_author, phrase)
 
     return phrase
 
