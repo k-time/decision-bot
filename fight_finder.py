@@ -111,8 +111,15 @@ def _get_fights_from_search_page(search_page_url):
     # List of fight urls to be returned
     list_of_fights = []
 
+    try:
+        page = urlopen(search_page_url)
+    except (urllib.error.HTTPError, UnicodeEncodeError):
+        # Sometimes mmadecisions.com randomly changes the url to not include .jsp
+        search_page_url = search_page_url.replace(".jsp", "")
+        page = urlopen(search_page_url)
+
     # Opening page
-    soup = BeautifulSoup(urlopen(search_page_url).read(), "lxml")
+    soup = BeautifulSoup(page.read(), "lxml")
 
     # Getting the fighter column on the page
     fighter_column = soup.find('td', attrs={'width': '265px', 'valign': 'top', 'align': 'center'})
@@ -196,7 +203,7 @@ def _get_score_tables(soup):
     score_tables = []
 
     # Finding the decision scores table on the page
-    html_tables = soup.find_all('table', limit=3, attrs={'cellspacing': '1', 'width': '100%'})
+    html_tables = soup.find_all('table', limit=3, attrs={'style': 'border-spacing: 1px; width: 100%'})
     if not html_tables:
         return None
 
@@ -288,7 +295,7 @@ def _get_event_info(soup, url):
 # Getting the media scores from the fight page
 def _get_media_scores(soup, url):
     try:
-        media_section = soup.find('table', attrs={'cellspacing': '2', 'width': '100%'})
+        media_section = soup.find('table', attrs={'style': 'border-spacing: 0px; width: 100%'})
         media_rows = media_section.find_all('tr', attrs={'class': 'decision'})
         media_scores = []
         if media_rows:
