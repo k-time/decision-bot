@@ -190,6 +190,7 @@ def _get_fight_info_from_fight_page(fight_urls):
             if not score_tables:
                 raise ValueError("could not get score tables")
         except Exception:
+            logger.exception("unable to parse score table html, trying backup attrs")
             score_tables = _get_score_tables(soup, use_backup_attrs=True)
             if not score_tables:
                 return None
