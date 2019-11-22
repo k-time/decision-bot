@@ -184,12 +184,20 @@ def _get_fight_info_from_fight_page(fight_urls):
         soup = BeautifulSoup(urlopen(url).read(), "lxml")
 
         # Getting all the information from the page
-        score_tables = _get_score_tables(soup)
-        if not score_tables:
-            return None
+        # This code is rough, just getting the backup attrs to work
+        try:
+            score_tables = _get_score_tables(soup)
+            if not score_tables:
+                raise ValueError("could not get score tables")
+        except Exception:
+            score_tables = _get_score_tables(soup, use_backup_attrs=True)
+            if not score_tables:
+                return None
         fight_result = _get_fight_result(soup, url)
         event_info = _get_event_info(soup, url)
         media_scores = _get_media_scores(soup, url)
+        if media_scores is None:
+            media_scores = _get_media_scores(soup, url, use_backup_attrs=True)
 
         # Add a tuple containing all fight info
         fight_info.append((score_tables, fight_result, media_scores, event_info))
@@ -198,12 +206,16 @@ def _get_fight_info_from_fight_page(fight_urls):
 
 
 # Getting the score tables from the fight page
-def _get_score_tables(soup):
+def _get_score_tables(soup, use_backup_attrs=False):
     # The final tables to be returned: list of (judge name, table rows) tuples
     score_tables = []
 
     # Finding the decision scores table on the page
-    html_tables = soup.find_all('table', limit=3, attrs={'style': 'border-spacing: 1px; width: 100%'})
+    if use_backup_attrs:
+        # Sometimes mmadecisions.com changes their html
+        html_tables = soup.find_all('table', limit=3, attrs={'cellspacing': '1', 'width': '100%'})
+    else:
+        html_tables = soup.find_all('table', limit=3, attrs={'style': 'border-spacing: 1px; width: 100%'})
     if not html_tables:
         return None
 
@@ -293,9 +305,15 @@ def _get_event_info(soup, url):
 
 
 # Getting the media scores from the fight page
-def _get_media_scores(soup, url):
+def _get_media_scores(soup, url, use_backup_attrs=False):
     try:
-        media_section = soup.find('table', attrs={'style': 'border-spacing: 0px; width: 100%'})
+        if use_backup_attrs:
+            media_section = soup.find('table', attrs={'cellspacing': '2', 'width': '100%'})
+        else:
+            media_section = soup.find('table', attrs={'style': 'border-spacing: 0px; width: 100%'})
+        if not media_section:
+            raise ValueError("could not find media section attributes in html")
+
         media_rows = media_section.find_all('tr', attrs={'class': 'decision'})
         media_scores = []
         if media_rows:
@@ -303,7 +321,8 @@ def _get_media_scores(soup, url):
                 score = row.find('a', attrs={'class': 'external'}).getText().strip()
                 fighter = row.find_all('td', attrs={'align': 'center'})[-1].getText()
                 media_scores.append((score, fighter))
-    except AttributeError:
+
+    except Exception:
         logger.exception('Could not retrieve media scores from url {}'.format(url))
         return None
 
