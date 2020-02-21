@@ -242,10 +242,22 @@ def build_fan_scores_text(fan_scores: Optional[List[List[Union[str, int]]]]) -> 
     if total_num_votes < 10:
         return ""
 
-    return f"\n*Fan Scores* — " \
-           f"*{fighter1_num_votes}/{total_num_votes}* ***{fighter1_name}***, " \
-           f"*{fighter2_num_votes}/{total_num_votes}* ***{fighter2_name}***, " \
-           f"*{draw_num_votes}/{total_num_votes}* ***{draw_name}***." \
+    fighter1_percentage = round(fighter1_num_votes/total_num_votes * 100)
+    fighter2_percentage = round(fighter2_num_votes/total_num_votes * 100)
+    draw_percentage = round(draw_num_votes/total_num_votes * 100)
+
+    valid_strings = []
+    if fighter1_num_votes != 0:
+        fighter_1_str = f"*{fighter1_num_votes}/{total_num_votes}* ***{fighter1_name}***"
+        valid_strings.append(fighter_1_str)
+    if fighter2_num_votes != 0:
+        fighter_2_str = f"*{fighter2_num_votes}/{total_num_votes}* ***{fighter2_name}***"
+        valid_strings.append(fighter_2_str)
+    if draw_num_votes != 0:
+        draw_str = f"*{draw_num_votes}/{total_num_votes}* ***{draw_name}***"
+        valid_strings.append(draw_str)
+
+    return f"\n*Fan Scores* — {', '.join(valid_strings)}."
 
 
 # Replace nicknames and common name mistakes in user input
