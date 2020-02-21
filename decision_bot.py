@@ -248,13 +248,13 @@ def build_fan_scores_text(fan_scores: Optional[List[List[Union[str, int]]]]) -> 
 
     valid_strings = []
     if fighter1_num_votes != 0:
-        fighter_1_str = f"*{fighter1_num_votes}/{total_num_votes}* ***{fighter1_name}***"
+        fighter_1_str = f"*{fighter1_num_votes}/{total_num_votes} ({fighter1_percentage}%)* ***{fighter1_name}***"
         valid_strings.append(fighter_1_str)
     if fighter2_num_votes != 0:
-        fighter_2_str = f"*{fighter2_num_votes}/{total_num_votes}* ***{fighter2_name}***"
+        fighter_2_str = f"*{fighter2_num_votes}/{total_num_votes} ({fighter2_percentage}%)* ***{fighter2_name}***"
         valid_strings.append(fighter_2_str)
     if draw_num_votes != 0:
-        draw_str = f"*{draw_num_votes}/{total_num_votes}* ***{draw_name}***"
+        draw_str = f"*{draw_num_votes}/{total_num_votes} ({draw_percentage}%)* ***{draw_name}***"
         valid_strings.append(draw_str)
 
     return f"\n*Fan Scores* — {', '.join(valid_strings)}."
