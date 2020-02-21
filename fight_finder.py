@@ -8,6 +8,8 @@ from pprint import pprint
 from datetime import datetime
 import logging
 import yaml
+import json
+from typing import Optional, List, Union
 
 # Set logging level to INFO for status output, CRITICAL for no output
 logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
@@ -199,11 +201,55 @@ def _get_fight_info_from_fight_page(fight_urls):
         media_scores = _get_media_scores(soup, url)
         if media_scores is None:
             media_scores = _get_media_scores(soup, url, use_backup_attrs=True)
+        fan_scores = _get_fan_scores(soup, url)
 
         # Add a tuple containing all fight info
-        fight_info.append((score_tables, fight_result, media_scores, event_info))
+        fight_info.append((score_tables, fight_result, media_scores, event_info, fan_scores))
 
     return fight_info
+
+
+def _get_fan_scores(soup, url: str) -> Optional[List[List[Union[str, int]]]]:
+    try:
+        scripts = soup.find_all('script', attrs={'type': 'text/javascript'}, limit=5)
+        if len(scripts) < 5:
+            logger.error("Could not find Javascript for fan scores. Something must have changed on the website. "
+                         "On url {}".format(url))
+            return None
+
+        fan_script = scripts[4].getText()
+        add_rows_string = 'data.addRows(['
+
+        start_index = fan_script.find(add_rows_string)
+        if start_index == -1:
+            logger.error("Could not find fan score start index for some reason from url {}".format(url))
+            return None
+
+        end_index = fan_script.find(']);', start_index, start_index+500)
+        if end_index == -1:
+            logger.error("Could not find fan score end index for some reason from url {}".format(url))
+            return None
+
+        data_array_string = fan_script[start_index+len(add_rows_string):end_index].strip()
+        del fan_script
+        # Valid JSON needs to use "" for strings. Javascript can use '', which is what we have right now
+        data_array_string = data_array_string.replace("['", "[\"").replace("',", "\",")
+        # Need to make it a list of lists
+        data_array_string = f"[ {data_array_string} ]"
+
+        json_string = f"{{ \"data\": {data_array_string} }}"
+        data_dict = json.loads(json_string)
+        score_array = data_dict["data"]
+
+        if len(score_array) != 3:
+            logger.error("Score array was not length of 3 for some reason, error parsing. {}".format(score_array))
+            return None
+
+        return score_array
+
+    except Exception:
+        logger.exception('Could not retrieve fan scores from url {}'.format(url))
+        return None
 
 
 # Getting the score tables from the fight page

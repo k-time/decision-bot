@@ -11,7 +11,7 @@ import argparse
 from retry import retry
 from datetime import datetime
 from scipy import stats
-from typing import List, Tuple, Set
+from typing import List, Tuple, Set, Optional, Union
 
 import fight_finder as ff
 
@@ -29,8 +29,14 @@ phrases = cfg['fail_phrases']
 PHRASE_INDEX = 0
 
 
-def build_comment_reply(score_tables, fight_result: str, media_scores: List[Tuple[str, str]], event_info: str,
-                        comment_author: str):
+def build_comment_reply(
+        score_tables,
+        fight_result: str,
+        media_scores: List[Tuple[str, str]],
+        event_info: str,
+        fan_scores: Optional[List[List[Union[str, int]]]],
+        comment_author: str
+):
     if "JON JONES" in fight_result:
         fight_result = fight_result.replace("JON JONES", "JON JONES 👀👀", 1)
     if "DANIEL CORMIER" in fight_result:
@@ -65,6 +71,8 @@ def build_comment_reply(score_tables, fight_result: str, media_scores: List[Tupl
     comment += build_judge_text(score_tables, comment_author) + '\n\n'
     # Adding media scores
     comment += build_media_scores_text(media_scores)
+    # Adding fan scores
+    comment += build_fan_scores_text(fan_scores)
 
     return comment
 
@@ -111,7 +119,8 @@ def build_judge_text(score_tables, comment_author):
     judge_text = 'Judges, in order: '
     for judge, table in score_tables:
         judge_text += judge + ', '
-    return '\n*^({}.)*\n*^(Summoned by {}.)*'.format(judge_text.strip(string.punctuation + ' '), comment_author)
+    # return '\n*^({}.)*\n*^(Summoned by {}.)*'.format(judge_text.strip(string.punctuation + ' '), comment_author)
+    return '\n*^({}.)*'.format(judge_text.strip(string.punctuation + ' '))
 
 
 def build_media_scores_text(media_scores) -> str:
@@ -213,6 +222,30 @@ def _get_average_media_score_text(media_scores: List[Tuple[str, str]], score_set
     explanation_url = 'https://redd.it/9p4xc7'
     return "\nAvg. media score: **{} {}** (*{}^[[1]]({})*).\n".format(winning_score, winning_fighter,
                                                                            confidence_level, explanation_url)
+
+def build_fan_scores_text(fan_scores: Optional[List[List[Union[str, int]]]]) -> str:
+    if not fan_scores:
+        return ""
+
+    if len(fan_scores) != 3:
+        logger.error("Score array length must be 3. Score array {}".format(fan_scores))
+        return ""
+
+    fighter1_name = fan_scores[0][0]
+    fighter1_num_votes = fan_scores[0][1]
+    fighter2_name = fan_scores[1][0]
+    fighter2_num_votes = fan_scores[1][1]
+    draw_name = fan_scores[2][0]
+    draw_num_votes = fan_scores[2][1]
+
+    total_num_votes = fighter1_num_votes + fighter2_num_votes + draw_num_votes
+    if total_num_votes < 10:
+        return ""
+
+    return f"\n*Fan Scores* — " \
+           f"*{fighter1_num_votes}/{total_num_votes}* ***{fighter1_name}***, " \
+           f"*{fighter2_num_votes}/{total_num_votes}* ***{fighter2_name}***, " \
+           f"*{draw_num_votes}/{total_num_votes}* ***{draw_name}***." \
 
 
 # Replace nicknames and common name mistakes in user input
@@ -391,7 +424,7 @@ def send_reply(fight_info, comment, input_fight):
                 if count != 0:
                     time.sleep(5)
                     logger.info('Sending reply with next fight...')
-                log_and_reply(build_comment_reply(fight[0], fight[1], fight[2], fight[3], comment.author.name), comment)
+                log_and_reply(build_comment_reply(fight[0], fight[1], fight[2], fight[3], fight[4], comment.author.name), comment)
                 count += 1
     # Easter egg jokes
     elif 'dana' in input_fight:
@@ -442,7 +475,7 @@ def tester():
                 if fight[0] is None:
                     print(fail_text)
                 else:
-                    print(build_comment_reply(fight[0], fight[1], fight[2], fight[3], 'test_author'))
+                    print(build_comment_reply(fight[0], fight[1], fight[2], fight[3], fight[4], 'test_author'))
 
 
 # Run the bot, retrying whenever there is an unavoidable connection reset
