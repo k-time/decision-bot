@@ -6,3 +6,4 @@ Newkeypair.pem
 .idea/
 __pycache__/
 venv/
+*.png

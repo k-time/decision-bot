@@ -125,7 +125,7 @@ def build_media_scores_text(media_scores) -> str:
         fighter_1_total = 0
         fighter_2_total = 0
         score_diff_list = []
-        calculate_average = True
+        calculate_average = cfg['calculate_average_media_score']
 
         for score in media_scores:
             if score not in score_set:

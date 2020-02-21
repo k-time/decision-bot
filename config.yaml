@@ -22,6 +22,9 @@ target_subreddits: "mma+betsmma+bottesting"
 
 troubleshoot_text: " [Troubleshooting](https://s3.amazonaws.com/decision-bot/error_message.txt)"
 
+# Include average media score calculation or not
+calculate_average_media_score: false
+
 # People misspell decision a lot
 decision_spellings:
   - "decision"
