@@ -58,18 +58,19 @@ def _get_fight_url_list(fighter):
     # Entering fighter as query on initial search page
     query_url = cfg['search_url'] + fighter
     try:
-        page = urlopen(query_url)
-        url = page.geturl()
-    # Use requests.get() as backup if urlopen() fails
-    except (urllib.error.HTTPError, UnicodeEncodeError):
-        logger.info('urlopen() failed, trying requests.get()...')
+        page = requests.get(query_url)
+        url = page.url
+        # Currently there is a search functionality issue with mmadecisions.com
+        url = url.replace('mmadecisions/fighter', 'fighter')
+    except Exception:
+        logger.exception('Could not open url {} with requests.get(), trying urlopen()...'.format(query_url))
+        # Use urlopen() as backup if requests.get() fails
         try:
-            page = requests.get(query_url)
-            url = page.url
-            # Currently there is a search functionality issue with mmadecisions.com
+            page = urlopen(query_url)
+            url = page.geturl()
             url = url.replace('mmadecisions/fighter', 'fighter')
-        except requests.HTTPError:
-            logger.exception('Could not open url {}'.format(query_url))
+        except (urllib.error.HTTPError, UnicodeEncodeError):
+            logger.exception('urlopen() failed as well')
             return None
 
     # If page redirects to a fighter url
@@ -377,14 +378,16 @@ def _get_media_scores(soup, url, use_backup_attrs=False):
 
 
 def _get_full_date(num_date, url):
-    try:
-        # Convert numerical date YYYY-mm-dd to full date (ex. January 1, 2000)
-        d = datetime.strptime(num_date, '%Y-%m-%d')
-        return d.strftime('%B %d, %Y')
-        # return num_date
-    except ValueError:
-        logger.error('Could not convert date at url {}'.format(url))
-        return num_date
+    # try:
+    #     # Convert numerical date YYYY-mm-dd to full date (ex. January 1, 2000)
+    #     d = datetime.strptime(num_date, '%Y-%m-%d')
+    #     return d.strftime('%B %d, %Y')
+    # except ValueError:
+    #     logger.error('Could not convert date at url {}'.format(url))
+    #     return num_date
+
+    # mmadecisions.com now uses the full date, so can just return that
+    return num_date
 
 
 def _sanitize_url(url):
