@@ -325,9 +325,6 @@ def get_failure_phrase(comment_author):
 
 
 def generate_fail_text(input_fight, comment_author):
-    # TODO: remove this after mmadecisions.com's search functionality is fixed
-    return "[mmadecisions.com](http://www.mmadecisions.com/)'s search functionality is currently broken, so this bot cannot work. Unemployment's at an all-time high."
-
     num = random.random()
     if num < .5:  # Adjust this number to adjust the type of failure phrases
         return get_failure_phrase(comment_author)
@@ -441,10 +438,6 @@ def send_reply(fight_info, comment, input_fight):
                     logger.info('Sending reply with next fight...')
                 log_and_reply(build_comment_reply(fight[0], fight[1], fight[2], fight[3], fight[4], comment.author.name), comment)
                 count += 1
-    elif True:
-        # TODO: remove this after mmadecisions.com's search functionality is fixed
-        log_and_reply(generate_fail_text(input_fight, comment.author.name), comment)
-
     # Easter egg jokes
     elif 'dana' in input_fight:
         log_and_reply('Dana defeats Goof' + generate_victory_method(), comment)
