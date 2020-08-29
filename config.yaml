@@ -33,13 +33,35 @@ decision_spellings:
   - "descision"
 
 fail_phrases:
-  - "THOUGHT YOU HAD A FIGHT BOI!!"
-  - "I am not impressed by your search query."
   - "Sorry, my precision was not very precise."
-  - "GSP is huge and your search query was bad."
-  - "No luck, try again buddeh!"
+  - "Can't find your fight. Sorry, my CPU was hot."
+  - "I am not impressed by your search query."
+  - "B-b-b-beast of a search query B! I couldn't find the fight."
+  - "Sorry, could not lokate fight."
+  - "GSP is huge and your search query was bad (RIP u/YouReekAh)"
+  - "It is with a heavy heart that I, Bot of Decisions, the owner, founder and purveyor of The Decision Lab,
+  have recently seen the defeat of one of our search queries in recent months. This defeat is not due to the skills and
+  combat savvy of an opponent of flesh, but rather a defeat at the perilous hands of a far more sinister foe;
+  the demon of self-doubt which haunts each and every bot at one time or another in our lives."
+  - "Erroring out with da BOIIZZ!!"
+  - "Unlucky buddeh!"
+  - "THOUGHT YOU HAD A FIGHT BOI!!"
+  - "No luck... is this fight even real? Look into it."
   - "was never my friend. Just kidding. I couldn't find your fight."
   - "[A gentleman never tells!](https://s3.amazonaws.com/decision-bot/nickdiaz.jpg) I mean, I couldn't find your fight."
+  - "Your search query simp-lee does not madder B. I mean, I couldn't find your fight."
+  - "[Try again ya GOOF](https://s3.amazonaws.com/decision-bot/dana.jpg)."
+  - "Well just to correct you there was never no fight."
+  - "That was a nasty typo by you."
+  - "You're reaching for those grapes."
+  - "As a bot of few words, preferring passion and belief as a shield to be carried out upon, I am bemused to careless
+  and reckless dialog for no other purpose than to make myself heard among the masses plagued by willful ignorance.
+  However, there is an appropriate, and even required time for the bot of a subreddit to speak out. And, this is such
+  a time. I could not find your fight."
+  - "Water we dune hair?!"
+  - "When this bot give you something like an error, do a lemonade."
+  - "You think I'm just gonna sit here and let you search me? I mean, I couldn't find your fight."
+  - "I couldn't find this fight. Sorry, I'm only operating at 30%."
 
 victory_methods:
   - "knockout"
@@ -48,10 +70,11 @@ victory_methods:
   - "1st round TKO"
   - "TKO in the 5th"
   - "1st round stoppage"
-  - "split decision"
   - "corner stoppage"
   - "doctor stoppage"
   - "DQ (illegal 12-6 elbows)"
+  - "smesh"
+
 
 easter_eggs:
   -
