@@ -221,7 +221,7 @@ def _get_average_media_score_text(media_scores: List[Tuple[str, str]], score_set
 
     explanation_url = 'https://redd.it/9p4xc7'
     return "\nAvg. media score: **{} {}** (*{}^[[1]]({})*).\n".format(winning_score, winning_fighter,
-                                                                           confidence_level, explanation_url)
+                                                                      confidence_level, explanation_url)
 
 def build_fan_scores_text(fan_scores: Optional[List[List[Union[str, int]]]]) -> str:
     if not fan_scores:
@@ -443,6 +443,8 @@ def send_reply(fight_info, comment, input_fight):
         log_and_reply('Dana defeats Goof' + generate_victory_method(), comment)
     elif 'usada' in input_fight:
         log_and_reply('USADA' + generate_victory_method(), comment)
+    elif 'khabib' in input_fight or 'nurmagomedov' in input_fight:
+        log_and_reply("Khabib by smesh." + troubleshoot_text, comment)
     else:
         log_and_reply(generate_fail_text(input_fight, comment.author.name), comment)
 
@@ -499,11 +501,11 @@ def run(nickname_dict, rematch_list):
 
     # Authentication
     reddit = praw.Reddit(
-            client_id=cfg['client_id'],
-            client_secret=cfg['client_secret'],
-            user_agent=cfg['user_agent'],
-            username=cfg['username'],
-            password=cfg['pw'])
+        client_id=cfg['client_id'],
+        client_secret=cfg['client_secret'],
+        user_agent=cfg['user_agent'],
+        username=cfg['username'],
+        password=cfg['pw'])
 
     # Monitoring incoming comment stream from subreddit
     subreddit = reddit.subreddit(cfg['target_subreddits'])
