@@ -1,9 +1,9 @@
 # DecisionBot
 
-DecisionBot is a Reddit bot that retrieves and posts martial arts scorecards on-demand. It is triggered when users comment in any [r/mma](https://www.reddit.com/r/mma) thread with the fighter names.
+DecisionBot is a Reddit bot that retrieves and posts mixed martial arts scorecards on-demand. Users summon the bot by commenting in any [r/mma](https://www.reddit.com/r/mma) thread with the fighters' names. It has been live on r/mma since February 2017.
 
 * [Example of use in discussion](https://www.reddit.com/r/MMA/comments/616fhz/coach_del_fierro_says_exchamp_dominick_cruz_is/dfc7oxl/?context=3)
-* [Various usage examples](https://www.reddit.com/r/bottesting/comments/606f58/decisionbot_usage_examples/)
+* [Usage guide on Reddit](https://www.reddit.com/r/bottesting/comments/606f58/decisionbot_usage_examples/)
 * [Initial release thread on r/mma](https://www.reddit.com/r/MMA/comments/5vy9cc/decisionbot_new_rmma_bot_that_posts_decision/)
 
 ## Usage example
@@ -33,13 +33,18 @@ DecisionBot is a Reddit bot that retrieves and posts martial arts scorecards on-
     * **4/19** people scored it **47-47 DRAW**.
     * **1/19** people scored it **47-48 Diaz**.
 
+    *2215 fan scores* — *1426 (64%)* ***McGregor***, *483 (22%)* ***Diaz***, *306 (14%)* ***Draw***.
+
 ## Features
-* You can use v / v. / vs / vs. / versus, or leave it out and the bot will figure it out.
+* You can use v / v. / vs / vs. / versus, or leave it out and the bot will figure the names out.
 * Handles rematches (include the rematch number in the comment, or leave it out and the bot posts all fights).
 * Handles many fighter nicknames and common name misspellings.
-* Comments are not case-sensitive.
-* Put "decisionbot" anywhere in your comment.
-* Includes several easter eggs.
+* Supports returning ["certainty of victory" confidence level](https://www.reddit.com/r/DecisionBot/comments/9p4xc7/confidence_level_explanation/) based on media scorecards.
+* Banters and has many easter eggs.
+
+## How to Run
+* Run `make` to run in foreground.
+* Run `make start-background` to run in background, and `make stop` to stop the background process.
 
 ## Files
 File|Description
@@ -47,11 +52,10 @@ File|Description
 *fight_finder.py*|Searches and pulls fight data from [mmadecisions.com](http://mmadecisions.com/) using [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/bs4/doc/).
 *decision_bot.py*|Runs the bot on Reddit.
 *notify_account.py*|Notifies my personal account of DecisionBot's status.
-Bash scripts|Used for running DecisionBot continuously on server.
-*config.yaml*|Various configurations in YAML format.
-*commented.txt*|List of recent comments that triggered DecisionBot.
+*config.yaml*| YAML configs for the bot.
+*commented.txt*|List of recent comment ids that triggered the bot.
 *nicknames.txt*|List of common nicknames and name misspellings.
-*rematches.txt*|Correctly adjusted rematch numbers.
+*rematches.txt*|Correctly adjusted rematch numbers (if there was a finished fight, the rematch numbers need to be adjusted).
 
 ## Praise
 * *["This is one of the coolest and most useful bots I've seen on Reddit. True story."](https://www.reddit.com/r/MMA/comments/6656t9/this_legend_returns_saturday/dgfyzqz/?context=3)*
