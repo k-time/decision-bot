@@ -1,9 +1,6 @@
-connect.sh
-commented.txt
-log.txt
-Newkeypair.pem
+*.txt
 *.out
 .idea/
 __pycache__/
 venv/
-*.png
+misc/
