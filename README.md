@@ -52,7 +52,7 @@ File|Description
 *fight_finder.py*|Searches and pulls fight data from [mmadecisions.com](http://mmadecisions.com/) using [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/bs4/doc/).
 *decision_bot.py*|Runs the bot on Reddit.
 *notify_account.py*|Notifies my personal account of DecisionBot's status.
-*config.yaml*| YAML configs for the bot.
+*config.yaml*|Bot configs.
 *commented.txt*|List of recent comment ids that triggered the bot.
 *nicknames.txt*|List of common nicknames and name misspellings.
 *rematches.txt*|Correctly adjusted rematch numbers (if there was a finished fight, the rematch numbers need to be adjusted).
