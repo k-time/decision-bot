@@ -78,8 +78,8 @@ def build_comment_reply(
     comment += build_judge_text(score_tables, comment_author) + '\n\n'
     # Adding media scores
     comment += build_media_scores_text(media_scores)
-    # Adding fan scores
-    comment += build_fan_scores_text(fan_scores)
+    # Adding fan scores, disabled for now
+    # comment += build_fan_scores_text(fan_scores)
 
     return comment
 
