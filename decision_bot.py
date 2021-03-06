@@ -21,12 +21,19 @@ logger = logging.getLogger('DECISION_BOT')
 
 # Load configs
 with open('config.yaml', 'r') as cfg_file:
-    cfg = yaml.load(cfg_file)
+    cfg = yaml.load(cfg_file, Loader=yaml.FullLoader)
 log = cfg['log_name']
 comment_log = cfg['comment_log_name']
 troubleshoot_text = cfg['troubleshoot_text']
 phrases = cfg['fail_phrases']
 PHRASE_INDEX = 0
+
+
+def is_substring(source: str, substring: str, chars_to_search: int = None) -> bool:
+    if chars_to_search:
+        return source.find(substring, 0, chars_to_search) != -1
+
+    return source.find(substring) != -1
 
 
 def build_comment_reply(
@@ -37,13 +44,13 @@ def build_comment_reply(
         fan_scores: Optional[List[List[Union[str, int]]]],
         comment_author: str
 ):
-    if "JON JONES" in fight_result:
+    if is_substring(fight_result, "JON JONES", 100):
         fight_result = fight_result.replace("JON JONES", "JON JONES 👀👀", 1)
-    if "DANIEL CORMIER" in fight_result:
+    if is_substring(fight_result, "DANIEL CORMIER", 100):
         fight_result = fight_result.replace("DANIEL CORMIER", "DANIEL CORMIER 🎂🍗", 1)
-    if "ALEXANDER GUSTAFSSON" in fight_result:
+    if is_substring(fight_result, "ALEXANDER GUSTAFSSON", 100):
         fight_result = fight_result.replace("ALEXANDER GUSTAFSSON", "ALEXANDER GUSTAFSSON ♠️⧨", 1)
-    elif "ARTEM LOBOV" in fight_result:
+    elif is_substring(fight_result, "ARTEM LOBOV", 100):
         fight_result = fight_result.replace("ARTEM LOBOV", "THE GOAT", 1)
         if event_info is not None:
             event_info = event_info.replace("Lobov", "GOAT")

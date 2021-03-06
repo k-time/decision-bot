@@ -18,7 +18,7 @@ nickname_db: "nicknames.txt"
 rematch_db: "rematches.txt"
 
 # Subreddits for bot to be active in
-target_subreddits: "mma+betsmma+bottesting"
+target_subreddits: "mma+bottesting+combatsports+wmma"
 
 troubleshoot_text: " [Troubleshooting](https://s3.amazonaws.com/decision-bot/error_message.txt)"
 
@@ -33,12 +33,21 @@ decision_spellings:
   - "descision"
 
 fail_phrases:
+  - "Hold on I'm failing to find your fight brotha."
+  - "I couldn't find your fight. This is sucks."
+  - "Sorry I couldn't find your fight, I drank a bottle of wine last night."
+  - "Your search query reeks of booze and cigarettes."
+  - "I can't find this fight. Listen, searching for fights is cool but have you tried DMT?"
+  - "Listen, if people can walk around and believe the son of God came down to earth 2,000 years ago, and he killed
+  himself for our sins, and he can walk on water, and there's a God up there looking after ourselves, and if you get
+  on your knees and pray to him that things will change, if you can believe that, then you can believe that I
+  can screw up searching for a fight."
   - "Sorry, my precision was not very precise."
   - "Can't find your fight. Sorry, my CPU was hot."
   - "I am not impressed by your search query."
   - "B-b-b-beast of a search query B! I couldn't find the fight."
   - "Sorry, could not lokate fight."
-  - "GSP is huge and your search query was bad (RIP u/YouReekAh)"
+  - "GSP is huge and your search query was bad. (RIP u/YouReekAh)"
   - "It is with a heavy heart that I, Bot of Decisions, the owner, founder and purveyor of The Decision Lab,
   have recently seen the defeat of one of our search queries in recent months. This defeat is not due to the skills and
   combat savvy of an opponent of flesh, but rather a defeat at the perilous hands of a far more sinister foe;

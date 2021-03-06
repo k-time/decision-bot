@@ -5,7 +5,6 @@ from urllib.request import urlopen
 import urllib.error
 import requests
 from pprint import pprint
-from datetime import datetime
 import logging
 import yaml
 import json
@@ -17,7 +16,7 @@ logger = logging.getLogger('FIGHT_FINDER')
 
 # Load configs
 with open('config.yaml', 'r') as cfg_file:
-    cfg = yaml.load(cfg_file)
+    cfg = yaml.load(cfg_file, Loader=yaml.FullLoader)
 home_url = cfg['home_url']
 
 
