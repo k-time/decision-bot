@@ -18,7 +18,7 @@ nickname_db: "nicknames.txt"
 rematch_db: "rematches.txt"
 
 # Subreddits for bot to be active in
-target_subreddits: "mma+bottesting+combatsports+wmma"
+target_subreddits: "mma+bottesting+combatsports+wmma+imacasual"
 
 troubleshoot_text: " [Troubleshooting](https://s3.amazonaws.com/decision-bot/error_message.txt)"
 
@@ -34,6 +34,7 @@ decision_spellings:
 
 fail_phrases:
   - "Hold on I'm failing to find your fight brotha."
+  - "Those are my favorite fighters, never search them tho."
   - "I couldn't find your fight. This is sucks."
   - "Sorry I couldn't find your fight, I drank a bottle of wine last night."
   - "Your search query reeks of booze and cigarettes."
