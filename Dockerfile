@@ -1,14 +1,6 @@
 # Use the official Python image from the Docker Hub
 FROM python:3.8-slim
 
-# Install minimal dependencies needed for Python packages
-#RUN apt-get update && apt-get install -y \
-#    python3-distutils \
-#    && rm -rf /var/lib/apt/lists/*
-
-# Upgrade pip and setuptools to ensure pre-built wheels are used
-#RUN pip install --no-cache-dir --upgrade pip setuptools wheel
-
 # Set the working directory in the container
 WORKDIR /app
 

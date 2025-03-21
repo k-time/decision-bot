@@ -201,7 +201,9 @@ def _get_fight_info_from_fight_page(fight_urls):
         media_scores = _get_media_scores(soup, url)
         if media_scores is None:
             media_scores = _get_media_scores(soup, url, use_backup_attrs=True)
-        fan_scores = _get_fan_scores(soup, url)
+        # TODO: fan_scores disabled for now
+        # fan_scores = _get_fan_scores(soup, url)
+        fan_scores = None
 
         # Add a tuple containing all fight info
         fight_info.append((score_tables, fight_result, media_scores, event_info, fan_scores))
