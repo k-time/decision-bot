@@ -5,7 +5,7 @@ import yaml
 def main():
     # Load configs
     with open('config.yaml', 'r') as cfg_file:
-        cfg = yaml.load(cfg_file)
+        cfg = yaml.load(cfg_file, yaml.FullLoader)
 
     # Authentication
     reddit = praw.Reddit(
