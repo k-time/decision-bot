@@ -127,6 +127,9 @@ def build_judge_text(score_tables, comment_author):
     judge_text = 'Judges, in order: '
     for judge, table in score_tables:
         judge_text += judge + ', '
+    # Prevent extra comment when I'm testing
+    if comment_author == 'DecisionBot':
+        comment_author = 'myself'
     return '\n*^({}.)*\n*^(Summoned by {}.)*'.format(judge_text.strip(string.punctuation + ' '), comment_author)
     # return '\n*^({}.)*'.format(judge_text.strip(string.punctuation + ' '))
 

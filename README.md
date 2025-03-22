@@ -43,8 +43,15 @@ DecisionBot is a Reddit bot that retrieves and posts mixed martial arts scorecar
 * Banters and has many easter eggs.
 
 ## How to Run
-* Run `make` to run in foreground.
-* Run `make start-background` to run in background, and `make stop` to stop the background process.
+
+Without Docker:
+* Run `python decisionbot.py [--debug]`
+
+With Docker:
+* `make build` to build the image + create a container
+* `make` or `make run-foreground` to run in the foreground
+* `make run-background` to run in the background
+* `make restart` to restart, running in the background
 
 ## Files
 File|Description
