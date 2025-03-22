@@ -33,6 +33,8 @@ DecisionBot is a Reddit bot that retrieves and posts mixed martial arts scorecar
     * **4/19** people scored it **47-47 DRAW**.
     * **1/19** people scored it **47-48 Diaz**.
 
+    Avg. media score: **47.7-47.0 McGregor** (*high certainty<sup>[[1]](https://redd.it/9p4xc7)</sup>*).
+
     *2215 fan scores* — *1426 (64%)* ***McGregor***, *483 (22%)* ***Diaz***, *306 (14%)* ***Draw***.
 
 ## Features
