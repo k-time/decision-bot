@@ -1,20 +1,20 @@
-run-foreground:
-	docker start -a dbot-container
-	# TODO: app doesn't handle SIGINT, so you have to docker stop it after you interrupt
-
 run-background:
-	echo 'Started bot at' `date` >> ./log.txt
-	python notify_account.py
-	docker start dbot-container
+	@if docker ps | grep 'dbot-container'; then \
+		echo 'DecisionBot is already running'; \
+	else \
+		python notify_account.py; \
+		docker start dbot-container; \
+		echo 'Started bot at' `date` | tee ./log.txt; \
+	fi
 
 stop:
 	docker stop dbot-container
 
 restart:
 	docker stop dbot-container
-	echo 'Started bot at' `date` >> ./log.txt
 	python notify_account.py
 	docker start dbot-container
+	echo 'Restarted bot at' `date` | tee ./log.txt
 
 build:
 	docker rm dbot-container

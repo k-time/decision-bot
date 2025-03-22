@@ -49,9 +49,8 @@ Without Docker:
 
 With Docker:
 * `make build` to build the image + create a container
-* `make` or `make run-foreground` to run in the foreground
-* `make run-background` to run in the background
-* `make restart` to restart, running in the background
+* `make` to run (in background)
+* `make restart` to restart (in background)
 
 ## Files
 File|Description
