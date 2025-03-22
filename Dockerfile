@@ -13,8 +13,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code into the container
 COPY . .
 
-RUN echo 'Started bot at' `date` >> ./log.txt;  \
-    python notify_account.py
-
 # Specify the command to run the application
 CMD ["python", "decision_bot.py"]

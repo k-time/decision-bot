@@ -1,16 +1,25 @@
-#!/bin/sh
+run-foreground:
+	docker start -a dbot-container
+	# TODO: app doesn't handle SIGINT, so you have to docker stop it after you interrupt
 
-start-foreground:
-	bin/start-foreground.sh
-
-start-background:
-	bin/start-background.sh
-
-check:
-	bin/check.sh
-
-restart:
-	bin/restart.sh
+run-background:
+	echo 'Started bot at' `date` >> ./log.txt
+	python notify_account.py
+	docker start dbot-container
 
 stop:
-	bin/stop.sh
+	docker stop dbot-container
+
+restart:
+	docker stop dbot-container
+	echo 'Started bot at' `date` >> ./log.txt
+	python notify_account.py
+	docker start dbot-container
+
+build:
+	docker rm dbot-container
+	docker build -t dbot-app .
+	docker create --name dbot-container dbot-app
+
+check:
+	docker ps
